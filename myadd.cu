@@ -7,14 +7,12 @@ __global__ void vec_add(const float* A, const float* B, float* C, unsigned long 
 {
 
     unsigned long long int i_data = blockDim.x * blockIdx.x + threadIdx.x;
-    printf("%llu\n", i_data);
-    if (i_data >= N_data)
+    if (i_data < N_data)
     {
-        return;
-    }
-    else
-    {
-        C[i_data] = A[i_data] + B[i_data];
+        for (unsigned i = 0; i < 200; ++i)
+        {
+            C[i_data] = A[i_data] + B[i_data];
+        }
     }
 }
 
@@ -28,6 +26,7 @@ int main(int argc, char** argv)
         std::cout << "    " << argv[0] << " N_data" << std::endl;
         std::cout << std::endl;
         std::cout << std::endl;
+        return 1;
     }
 
     auto start = high_resolution_clock::now();
@@ -44,6 +43,8 @@ int main(int argc, char** argv)
         B_host[i] = i * pow(-1, i);
     }
 
+    auto mid1 = high_resolution_clock::now();
+
     // allocate memory on device
     float* A_device;
     float* B_device;
@@ -52,11 +53,13 @@ int main(int argc, char** argv)
     cudaMalloc((void**) &B_device, N_data * sizeof(float));
     cudaMalloc((void**) &C_device, N_data * sizeof(float));
 
+    auto mid2 = high_resolution_clock::now();
+
     // copy the host input data to the device input data
     cudaMemcpy(A_device, A_host, N_data * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(B_device, B_host, N_data * sizeof(float), cudaMemcpyHostToDevice);
 
-    auto mid1 = high_resolution_clock::now();
+    auto mid3 = high_resolution_clock::now();
 
     unsigned long long int N_thread_per_block = 256;
     unsigned long long int N_block = (N_data - 0.5) / N_thread_per_block + 1;
@@ -66,7 +69,7 @@ int main(int argc, char** argv)
 
     vec_add<<<N_block, N_thread_per_block>>>(A_device, B_device, C_device, N_data);
 
-    auto mid2 = high_resolution_clock::now();
+    auto mid4 = high_resolution_clock::now();
 
     cudaMemcpy(C_host, C_device, N_data * sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -79,10 +82,14 @@ int main(int argc, char** argv)
     }
 
     float time_init = duration_cast<microseconds>(mid1 - start).count();
-    float time_exec = duration_cast<microseconds>(mid2 - mid1).count();
-    float time_retr = duration_cast<microseconds>(end - mid2).count();
+    float time_allo = duration_cast<microseconds>(mid2 - mid1).count();
+    float time_send = duration_cast<microseconds>(mid3 - mid2).count();
+    float time_exec = duration_cast<microseconds>(mid4 - mid3).count();
+    float time_retr = duration_cast<microseconds>(end - mid4).count();
 
     std::cout <<  " time_init: " << time_init <<  std::endl;
+    std::cout <<  " time_allo: " << time_allo <<  std::endl;
+    std::cout <<  " time_send: " << time_send <<  std::endl;
     std::cout <<  " time_exec: " << time_exec <<  std::endl;
     std::cout <<  " time_retr: " << time_retr <<  std::endl;
 
@@ -94,4 +101,5 @@ int main(int argc, char** argv)
     cudaFree(B_device);
     cudaFree(C_device);
 
+    return 0;
 }

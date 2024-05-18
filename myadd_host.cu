@@ -7,7 +7,10 @@ void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data)
 {
     for (unsigned long long int i_data = 0; i_data < N_data; ++i_data)
     {
-        C[i_data] = A[i_data] + B[i_data];
+        for (unsigned i = 0; i < 200; ++i)
+        {
+            C[i_data] = A[i_data] + B[i_data];
+        }
     }
 }
 
@@ -18,9 +21,10 @@ int main(int argc, char** argv)
     {
         std::cout << "Usage:" << std::endl;
         std::cout << std::endl;
-        std::cout << "    ./myadd_host_v2 N_data" << std::endl;
+        std::cout << "    " << argv[0] << " N_data" << std::endl;
         std::cout << std::endl;
         std::cout << std::endl;
+        return 1;
     }
 
     auto start = high_resolution_clock::now();
@@ -61,4 +65,9 @@ int main(int argc, char** argv)
 
     std::cout <<  " speedup_ceiling: " << speedup_ceiling <<  std::endl;
 
+    free(A_host);
+    free(B_host);
+    free(C_host);
+
+    return 0;
 }
