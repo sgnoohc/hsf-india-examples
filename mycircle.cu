@@ -19,6 +19,8 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
     i_task += offset;
 
     // compute the distance of the dart from the origin
+    double xx = acos(cos(x[i_task]));
+    double yy = asin(sin(y[i_task]));
     double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
     if (verbose)
     {
@@ -94,24 +96,13 @@ int main(int argc, char** argv)
     // create a uniform real distribution between [0.0, 1.0)
     std::uniform_real_distribution<> distr(0.0, 1.0);
 
-    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    // The "Answer"
-    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    // Create a counter_dart_inside
-    // This will count total number of how many fell
-    // inside the quarter-circle in all tries
-    // Then once we count how many total inside vs. total thrown,
-    // from there we can estimate the pi by taking the fraction
-    // Since the circle is a unit circle the area is supposed to be pi/4.
-    // So the fraction should equal to pi/4.
-    unsigned long long counter_dart_inside = 0;
-
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     // Creating "darts"
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
     unsigned long long N_total_darts = N_darts * N_repeat;
+    unsigned long long N_block = (N_total_darts - 0.5) / N_thread_per_block + 1;
 
     // create a host (x, y) positions
     double* x_host = new double[N_total_darts];
@@ -154,125 +145,129 @@ int main(int argc, char** argv)
     unsigned long long* counter_device;
     cudaMalloc((void**) &counter_device, N_repeat * sizeof(unsigned long long));
 
+    cudaEvent_t startEvent, stopEvent;
+    cudaEventCreate(&startEvent);
+    cudaEventCreate(&stopEvent);
+
+    // Create Cuda Stream Lanes
+    cudaStream_t stream[N_repeat];
+
+    for (int i = 0; i < N_repeat; ++i)
+    {
+        cudaStreamCreate(&stream[i]);
+    }
+
+    float ms; // elapsed time in milliseconds
+
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Warmup run
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    cudaEventRecord(startEvent, 0);
+    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
+    cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaEventRecord(stopEvent, 0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&ms, startEvent, stopEvent);
+    printf("Time for sequential transfer and execute (ms): %f\n", ms);
+
+    cudaMemset(counter_device, 0, N_repeat * sizeof(unsigned long long));
+
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Serial sequence
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    auto time_serial_start = high_resolution_clock::now();
+
+    // now copy over the host content to the allocated memory space on GPU
+    auto time_tx_start = high_resolution_clock::now();
+    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+    auto time_tx_end = high_resolution_clock::now();
+    float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
+
+    auto time_exec_start = high_resolution_clock::now();
+    count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
+    cudaDeviceSynchronize();
+    auto time_exec_end = high_resolution_clock::now();
+    float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
+
+    // Copy back the result
+    auto time_rx_start = high_resolution_clock::now();
+    cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    auto time_rx_end = high_resolution_clock::now();
+    float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
+
+    auto time_serial_end = high_resolution_clock::now();
+    float serial_time = duration_cast<microseconds>(time_serial_end - time_serial_start).count() / 1000.;
+
+    // Compute PI the first counter holds total count
+    double pi_estimate_serial = ((double)counter_host[0]) / (N_darts * N_repeat) * 4.;
+
+    std::cout <<  " pi_estimate_serial: " << pi_estimate_serial <<  std::endl;
+
+    std::cout <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
+    std::cout <<  " serial_time: " << serial_time <<  std::endl;
+
+    cudaMemset(counter_device, 0, N_repeat * sizeof(unsigned long long));
+
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     // Repeating N times to throw more darts
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    // Starting the clock
-    auto start = high_resolution_clock::now();
+    auto time_overlapping_start = high_resolution_clock::now();
 
-    if (do_overlap_transfer)
+    for (int i = 0; i < N_repeat; ++i)
     {
-        // Create Cuda Stream Lanes
-        cudaStream_t stream[N_repeat];
 
-        for (int i = 0; i < N_repeat; ++i)
-        {
-            cudaStreamCreate(&stream[i]);
-        }
+        // now copy over the host content to the allocated memory space on GPU
+        unsigned long long offset = i * N_darts;
+        cudaMemcpyAsync(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
+        cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
 
-        for (int i = 0; i < N_repeat; ++i)
-        {
+        unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
+        count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i, verbose);
 
-            // now copy over the host content to the allocated memory space on GPU
-            unsigned long long offset = i * N_darts;
-            cudaMemcpyAsync(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
-            cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
-
-            unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-            count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i, verbose);
-
-            // Copy back the result
-            int counter_offset = i;
-            cudaMemcpyAsync(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
-        }
-
-        // Add to the grand counter
-        for (int i = 0; i < N_repeat; ++i)
-        {
-            cudaStreamSynchronize(stream[i]);
-            counter_dart_inside += counter_host[i];
-            // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
-        }
-
-    }
-    else
-    {
-        // for (int i = 0; i < N_repeat; ++i)
-        // {
-
-        //     // now copy over the host content to the allocated memory space on GPU
-        //     auto time_tx_start = high_resolution_clock::now();
-        //     unsigned long long offset = i * N_darts;
-        //     cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
-        //     cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
-        //     cudaDeviceSynchronize();
-        //     auto time_tx_end = high_resolution_clock::now();
-        //     float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
-
-        //     auto time_exec_start = high_resolution_clock::now();
-        //     unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-        //     count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i, verbose);
-        //     cudaDeviceSynchronize();
-        //     auto time_exec_end = high_resolution_clock::now();
-        //     float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
-
-        //     // Copy back the result
-        //     auto time_rx_start = high_resolution_clock::now();
-        //     int counter_offset = i;
-        //     cudaMemcpy(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-        //     cudaDeviceSynchronize();
-        //     auto time_rx_end = high_resolution_clock::now();
-        //     float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
-
-        //     // Add to the grand counter
-        //     counter_dart_inside += counter_host[i];
-
-        //     // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
-
-        //     std::cout <<  " i: " << i <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
-
-        // }
-
-            // now copy over the host content to the allocated memory space on GPU
-            auto time_tx_start = high_resolution_clock::now();
-            cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
-            cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
-            cudaDeviceSynchronize();
-            auto time_tx_end = high_resolution_clock::now();
-            float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
-
-            auto time_exec_start = high_resolution_clock::now();
-            unsigned long long N_block = (N_total_darts - 0.5) / N_thread_per_block + 1;
-            count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
-            cudaDeviceSynchronize();
-            auto time_exec_end = high_resolution_clock::now();
-            float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
-
-            // Copy back the result
-            auto time_rx_start = high_resolution_clock::now();
-            cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-            cudaDeviceSynchronize();
-            auto time_rx_end = high_resolution_clock::now();
-            float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
-
-            // Add to the grand counter
-            counter_dart_inside += counter_host[0];
-
-            // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
-
-            std::cout <<  " i: " << 0 <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
+        // Copy back the result
+        int counter_offset = i;
+        cudaMemcpyAsync(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
     }
 
-    // Starting the clock
-    auto end = high_resolution_clock::now();
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // The "Answer"
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Create a counter_dart_inside
+    // This will count total number of how many fell
+    // inside the quarter-circle in all tries
+    // Then once we count how many total inside vs. total thrown,
+    // from there we can estimate the pi by taking the fraction
+    // Since the circle is a unit circle the area is supposed to be pi/4.
+    // So the fraction should equal to pi/4.
+    unsigned long long counter_dart_inside = 0;
 
-    float time = duration_cast<microseconds>(end - start).count() / 1000.;
+    // Add to the grand counter
+    for (int i = 0; i < N_repeat; ++i)
+    {
+        cudaStreamSynchronize(stream[i]);
+    }
+    auto time_overlapping_end = high_resolution_clock::now();
+    float overlapping_time = duration_cast<microseconds>(time_overlapping_end - time_overlapping_start).count() / 1000.;
+    // Add to the grand counter
+    for (int i = 0; i < N_repeat; ++i)
+    {
+        counter_dart_inside += counter_host[i];
+        // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
+    }
 
-    double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
+    // Compute PI the first counter holds total count
+    double pi_estimate_overlapping = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
-    std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
-    std::cout <<  " time: " << time <<  std::endl;
+    std::cout <<  " pi_estimate_overlapping: " << pi_estimate_overlapping <<  std::endl;
+
+    std::cout <<  " overlapping_time: " << overlapping_time <<  std::endl;
 
     free(x_host);
     free(y_host);
