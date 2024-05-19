@@ -27,7 +27,7 @@ __global__ void count_darts(float* x, unsigned long long* counter, unsigned long
         printf("i: %llu\n", i_task);
         printf("o: %llu\n", offset);
         printf("x: %f\n", x[i_task]);
-        printf("y: %f\n", y[i_task+1]);
+        printf("y: %f\n", x[i_task+1]);
         printf("d: %f\n", dist);
     }
 
