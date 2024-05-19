@@ -156,7 +156,7 @@ int main(int argc, char** argv)
         cudaMemcpy(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
         // Add to the grand counter
-        counter_dart_inside += *counter_host[i];
+        counter_dart_inside += counter_host[i];
 
     }
 
