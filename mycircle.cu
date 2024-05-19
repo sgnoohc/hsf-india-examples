@@ -117,6 +117,8 @@ int main(int argc, char** argv)
             y_host[i * N_darts + j] = distr(gen);
             std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
             std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
+            float dist = sqrt(pow(x_host[i*N_darts+j], 2) + pow(y_host[i*N_darts+j], 2));
+            std::cout <<  " dist: " << dist <<  std::endl;
         }
 
     }
