@@ -152,7 +152,7 @@ int main(int argc, char** argv)
     {
 
         // now copy over the host content to the allocated memory space on GPU
-        unsigned long long offset = i * N_darts * sizeof(double);
+        unsigned long long offset = i * N_darts;
         cudaMemcpy(x_device + offset, x_host + offset, N_darts * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(y_device + offset, y_host + offset, N_darts * sizeof(double), cudaMemcpyHostToDevice);
 
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
         cudaDeviceSynchronize();
 
         // Copy back the result
-        int counter_offset = i * sizeof(unsigned long long);
+        int counter_offset = i;
         cudaMemcpy(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
         // Add to the grand counter
