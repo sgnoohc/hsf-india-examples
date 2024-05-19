@@ -61,8 +61,6 @@ int main(int argc, char** argv)
         N_repeat = atoi(argv[1]);
     }
 
-    // Starting the clock
-    auto start = high_resolution_clock::now();
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~
     // Random Number Generator
@@ -94,8 +92,6 @@ int main(int argc, char** argv)
     // Creating "darts"
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    auto time1 = high_resolution_clock::now();
-
     unsigned long long N_total_darts = N_darts * N_repeat;
 
     // create a host (x, y) positions
@@ -104,8 +100,6 @@ int main(int argc, char** argv)
 
     for (int i = 0; i < N_repeat; ++i)
     {
-
-        auto time1 = high_resolution_clock::now();
 
         //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
         // Create a list of random (x, y)
@@ -133,11 +127,12 @@ int main(int argc, char** argv)
     unsigned long long* counter_device;
     cudaMalloc((void**) &counter_device, N_repeat * sizeof(unsigned long long));
 
-    auto time2 = high_resolution_clock::now();
-
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     // Repeating N times to throw more darts
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    // Starting the clock
+    auto start = high_resolution_clock::now();
 
     for (int i = 0; i < N_repeat; ++i)
     {
@@ -159,9 +154,15 @@ int main(int argc, char** argv)
 
     }
 
+    // Starting the clock
+    auto end = high_resolution_clock::now();
+
+    float time = duration_cast<microseconds>(end - start).count() / 1000.;
+
     double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
+    std::cout <<  " time: " << time <<  std::endl;
 
     free(x_host);
     free(y_host);
