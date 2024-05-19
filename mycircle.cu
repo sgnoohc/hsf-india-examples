@@ -224,6 +224,7 @@ int main(int argc, char** argv)
 
     auto time_overlapping_start = high_resolution_clock::now();
 
+    cudaEventRecord(startEvent, 0);
     for (int i = 0; i < N_repeat; ++i)
     {
 
@@ -239,6 +240,10 @@ int main(int argc, char** argv)
         int counter_offset = i;
         cudaMemcpyAsync(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
     }
+    cudaEventRecord(stopEvent, 0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&ms, startEvent, stopEvent);
+    printf("Time for asynchronous transfer and execute (ms): %f\n", ms);
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     // The "Answer"
