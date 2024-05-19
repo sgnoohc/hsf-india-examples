@@ -27,7 +27,7 @@ __global__ void count_darts(float* x, unsigned long long* counter, unsigned long
         printf("i: %llu\n", i_task);
         printf("o: %llu\n", offset);
         printf("x: %f\n", x[i_task]);
-        printf("y: %f\n", y[i_task]);
+        printf("y: %f\n", y[i_task+1]);
         printf("d: %f\n", dist);
     }
 
@@ -172,9 +172,6 @@ int main(int argc, char** argv)
     float pi_estimate_serial = ((float)counter_host[0]) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate_serial: " << pi_estimate_serial <<  std::endl;
-
-    std::cout <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
-    std::cout <<  " serial_time: " << serial_time <<  std::endl;
 
     cudaMemset(counter_device, 0, N_repeat * sizeof(unsigned long long));
 
