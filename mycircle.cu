@@ -19,9 +19,9 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
     i_task += offset;
 
     // compute the distance of the dart from the origin
-    double xx = acos(cos(x[i_task]));
-    double yy = asin(sin(y[i_task]));
-    double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
+    double xx = x[i_task];
+    double yy = y[i_task];
+    double dist = sqrt(xx * xx + yy * yy);
     if (verbose)
     {
         printf("i: %llu\n", i_task);
