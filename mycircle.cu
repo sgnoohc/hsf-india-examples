@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 //__________________________________________________________________________________________
-__global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat)
+__global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat, bool verbose)
 {
     // Get this specific thread unique index
     unsigned long long i_task = threadIdx.x + blockDim.x * blockIdx.x;
@@ -20,11 +20,14 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
 
     // compute the distance of the dart from the origin
     double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
-    // printf("i: %llu\n", i_task);
-    // printf("o: %llu\n", offset);
-    // printf("x: %f\n", x[offset + i_task]);
-    // printf("y: %f\n", y[offset + i_task]);
-    // printf("d: %f\n", dist);
+    if (verbose)
+    {
+        printf("i: %llu\n", i_task);
+        printf("o: %llu\n", offset);
+        printf("x: %f\n", x[i_task]);
+        printf("y: %f\n", y[i_task]);
+        printf("d: %f\n", dist);
+    }
 
     // if the distance is less than 1 then count them as inside
     if (dist <= 1)
@@ -48,12 +51,20 @@ int main(int argc, char** argv)
     int N_repeat = 1;
     unsigned long long N_darts = 1000000; // 1 million random points
     bool do_overlap_transfer = false;
+    bool verbose = false;
 
     // Always 256
     unsigned long long N_thread_per_block = 256; // 256 threads
 
     // If arguments are provided overwrite the default setting
-    if (argc > 3)
+    if (argc > 4)
+    {
+        N_repeat = atoi(argv[1]);
+        N_darts = strtoull(argv[2], nullptr, 10);
+        do_overlap_transfer = atoi(argv[3]);
+        verbose = atoi(argv[4]);
+    }
+    else if (argc > 3)
     {
         N_repeat = atoi(argv[1]);
         N_darts = strtoull(argv[2], nullptr, 10);
@@ -119,9 +130,12 @@ int main(int argc, char** argv)
             x_host[i * N_darts + j] = distr(gen);
             y_host[i * N_darts + j] = distr(gen);
             float dist = sqrt(pow(x_host[i*N_darts+j], 2) + pow(y_host[i*N_darts+j], 2));
-            // std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
-            // std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
-            // std::cout <<  " dist: " << dist <<  std::endl;
+            if (verbose)
+            {
+                std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
+                std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
+                std::cout <<  " dist: " << dist <<  std::endl;
+            }
 
         }
 
@@ -166,7 +180,7 @@ int main(int argc, char** argv)
             cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
 
             unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-            count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i);
+            count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i, verbose);
 
             // Copy back the result
             int counter_offset = i;
@@ -184,38 +198,70 @@ int main(int argc, char** argv)
     }
     else
     {
-        for (int i = 0; i < N_repeat; ++i)
-        {
+        // for (int i = 0; i < N_repeat; ++i)
+        // {
+
+        //     // now copy over the host content to the allocated memory space on GPU
+        //     auto time_tx_start = high_resolution_clock::now();
+        //     unsigned long long offset = i * N_darts;
+        //     cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+        //     cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+        //     cudaDeviceSynchronize();
+        //     auto time_tx_end = high_resolution_clock::now();
+        //     float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
+
+        //     auto time_exec_start = high_resolution_clock::now();
+        //     unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
+        //     count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i, verbose);
+        //     cudaDeviceSynchronize();
+        //     auto time_exec_end = high_resolution_clock::now();
+        //     float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
+
+        //     // Copy back the result
+        //     auto time_rx_start = high_resolution_clock::now();
+        //     int counter_offset = i;
+        //     cudaMemcpy(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+        //     cudaDeviceSynchronize();
+        //     auto time_rx_end = high_resolution_clock::now();
+        //     float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
+
+        //     // Add to the grand counter
+        //     counter_dart_inside += counter_host[i];
+
+        //     // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
+
+        //     std::cout <<  " i: " << i <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
+
+        // }
 
             // now copy over the host content to the allocated memory space on GPU
             auto time_tx_start = high_resolution_clock::now();
-            unsigned long long offset = i * N_darts;
-            cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
-            cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+            cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+            cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+            cudaDeviceSynchronize();
             auto time_tx_end = high_resolution_clock::now();
             float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
             auto time_exec_start = high_resolution_clock::now();
-            unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-            count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
+            unsigned long long N_block = (N_total_darts - 0.5) / N_thread_per_block + 1;
+            count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
+            cudaDeviceSynchronize();
             auto time_exec_end = high_resolution_clock::now();
             float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
 
             // Copy back the result
             auto time_rx_start = high_resolution_clock::now();
-            int counter_offset = i;
-            cudaMemcpy(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+            cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+            cudaDeviceSynchronize();
             auto time_rx_end = high_resolution_clock::now();
             float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
 
             // Add to the grand counter
-            counter_dart_inside += counter_host[i];
+            counter_dart_inside += counter_host[0];
 
             // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
 
-            std::cout <<  " i: " << i <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
-
-        }
+            std::cout <<  " i: " << 0 <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
     }
 
     // Starting the clock
