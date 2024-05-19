@@ -4,17 +4,7 @@
 #include <chrono>
 using namespace std::chrono;
 
-void help()
-{
-    std::cout << "Usage:" << std::endl;
-    std::cout << std::endl;
-    std::cout << "    ./mycircle N_darts" << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    return;
-}
-
-
+//__________________________________________________________________________________________
 void count_darts_host(float* x, float* y, unsigned long long int* counter, int N_darts)
 {
     for (unsigned i_task = 0; i_task < N_darts; ++i_task)
@@ -31,18 +21,31 @@ void count_darts_host(float* x, float* y, unsigned long long int* counter, int N
     }
 }
 
+
+
+
+
+//__________________________________________________________________________________________
 int main(int argc, char** argv)
 {
 
-    if (argc < 3)
-    {
-        help();
-        return 1;
-    }
+    //~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Option settings
+    //~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    auto start = high_resolution_clock::now();
-    unsigned long long int N_darts = strtoull(argv[1], nullptr, 10);
-    unsigned long long int N_thread_per_block = strtoull(argv[2], nullptr, 10);
+    unsigned long long N_darts = 1000000; // 1 million random points
+    unsigned long long N_thread_per_block = 256; // 256 threads
+
+    // If arguments are provided overwrite the default setting
+    if (argc > 2)
+    {
+        N_darts = strtoull(argv[1], nullptr, 10);
+        N_thread_per_block = strtoull(argv[2], nullptr, 10);
+    }
+    else if (argc > 1)
+    {
+        N_darts = strtoull(argv[1], nullptr, 10);
+    }
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~
     // Random Number Generator

@@ -4,16 +4,7 @@
 #include <chrono>
 using namespace std::chrono;
 
-void help()
-{
-    std::cout << "Usage:" << std::endl;
-    std::cout << std::endl;
-    std::cout << "    ./mycircle N_darts" << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    return;
-}
-
+//__________________________________________________________________________________________
 __global__ void count_darts(double* x, double* y, unsigned long long* counter, int N_darts)
 {
     int i_task = threadIdx.x + blockDim.x * blockIdx.x;
@@ -36,17 +27,32 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, i
     }
 }
 
+
+
+
+//__________________________________________________________________________________________
 int main(int argc, char** argv)
 {
 
-    if (argc > 3)
+    //~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Option settings
+    //~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    unsigned long long N_darts = 1000000; // 1 million random points
+    unsigned long long N_thread_per_block = 256; // 256 threads
+
+    // If arguments are provided overwrite the default setting
+    if (argc > 2)
     {
-        unsigned long long N_darts = strtoull(argv[1], nullptr, 10);
-    unsigned igned long long N_thread_per_block = strtoull(argv[2], nullptr, 10);
-        help();
-        return 1;
+        N_darts = strtoull(argv[1], nullptr, 10);
+        N_thread_per_block = strtoull(argv[2], nullptr, 10);
+    }
+    else if (argc > 1)
+    {
+        N_darts = strtoull(argv[1], nullptr, 10);
     }
 
+    // Starting the clock
     auto start = high_resolution_clock::now();
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~
