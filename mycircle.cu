@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 //__________________________________________________________________________________________
-__global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat, bool verbose)
+__global__ void count_darts(float* x, float* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat, bool verbose)
 {
     // Get this specific thread unique index
     unsigned long long i_task = threadIdx.x + blockDim.x * blockIdx.x;
@@ -19,9 +19,9 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
     i_task += offset;
 
     // compute the distance of the dart from the origin
-    double xx = x[i_task];
-    double yy = y[i_task];
-    double dist = sqrt(xx * xx + yy * yy);
+    float xx = x[i_task];
+    float yy = y[i_task];
+    float dist = sqrt(xx * xx + yy * yy);
     if (verbose)
     {
         printf("i: %llu\n", i_task);
@@ -105,8 +105,8 @@ int main(int argc, char** argv)
     unsigned long long N_block = (N_total_darts - 0.5) / N_thread_per_block + 1;
 
     // create a host (x, y) positions
-    double* x_host = new double[N_total_darts];
-    double* y_host = new double[N_total_darts];
+    float* x_host = new float[N_total_darts];
+    float* y_host = new float[N_total_darts];
 
     for (int i = 0; i < N_repeat; ++i)
     {
@@ -136,10 +136,10 @@ int main(int argc, char** argv)
     unsigned long long* counter_host = new unsigned long long[N_repeat];
 
     // allocate a device (x, y) positions memory
-    double* x_device;
-    double* y_device;
-    cudaMalloc((void**) &x_device, N_total_darts * sizeof(double));
-    cudaMalloc((void**) &y_device, N_total_darts * sizeof(double));
+    float* x_device;
+    float* y_device;
+    cudaMalloc((void**) &x_device, N_total_darts * sizeof(float));
+    cudaMalloc((void**) &y_device, N_total_darts * sizeof(float));
 
     // allocate a device memory for answers for each repetition
     unsigned long long* counter_device;
@@ -163,8 +163,8 @@ int main(int argc, char** argv)
     // Warmup run
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     cudaEventRecord(startEvent, 0);
-    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
     count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
     cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
     cudaEventRecord(stopEvent, 0);
@@ -183,8 +183,8 @@ int main(int argc, char** argv)
     // now copy over the host content to the allocated memory space on GPU
     auto time_tx_start = high_resolution_clock::now();
     cudaEventRecord(startEvent, 0);
-    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(x_device, x_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(y_device, y_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
     auto time_tx_end = high_resolution_clock::now();
     float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
     float serial_time = duration_cast<microseconds>(time_serial_end - time_serial_start).count() / 1000.;
 
     // Compute PI the first counter holds total count
-    double pi_estimate_serial = ((double)counter_host[0]) / (N_darts * N_repeat) * 4.;
+    float pi_estimate_serial = ((float)counter_host[0]) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate_serial: " << pi_estimate_serial <<  std::endl;
 
@@ -230,8 +230,8 @@ int main(int argc, char** argv)
 
         // now copy over the host content to the allocated memory space on GPU
         unsigned long long offset = i * N_darts;
-        cudaMemcpyAsync(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
-        cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
+        cudaMemcpyAsync(&x_device[offset], &x_host[offset], N_darts * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
+        cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
 
         unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
         count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i, verbose);
@@ -272,7 +272,7 @@ int main(int argc, char** argv)
     }
 
     // Compute PI the first counter holds total count
-    double pi_estimate_overlapping = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
+    float pi_estimate_overlapping = ((float)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate_overlapping: " << pi_estimate_overlapping <<  std::endl;
 
