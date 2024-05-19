@@ -164,10 +164,14 @@ int main(int argc, char** argv)
             cudaMemcpyAsync(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
         }
 
-        
+        // Wait until all is done
+        cudaDeviceSynchronize();
 
-            // Add to the grand counter
+        // Add to the grand counter
+        for (int i = 0; i < N_repeat; ++i)
+        {
             counter_dart_inside += counter_host[i];
+        }
 
     }
     else
