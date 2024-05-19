@@ -18,24 +18,28 @@ __global__ void count_darts(float* x, float* y, unsigned long long* counter, uns
     unsigned long long offset = i_repeat * N_darts;
     i_task += offset;
 
-    // compute the distance of the dart from the origin
-    float xx = x[i_task];
-    float yy = y[i_task];
-    float dist = sqrt(xx * xx + yy * yy);
-    if (verbose)
+    for (int iii = 0; iii < 800; ++iii)
     {
-        printf("i: %llu\n", i_task);
-        printf("o: %llu\n", offset);
-        printf("x: %f\n", x[i_task]);
-        printf("y: %f\n", y[i_task]);
-        printf("d: %f\n", dist);
-    }
 
-    // if the distance is less than 1 then count them as inside
-    if (dist <= 1)
-    {
-        // atomic add
-        atomicAdd(&counter[i_repeat], 1);
+        // compute the distance of the dart from the origin
+        float xx = x[i_task];
+        float yy = y[i_task];
+        float dist = sqrt(xx * xx + yy * yy);
+        if (verbose)
+        {
+            printf("i: %llu\n", i_task);
+            printf("o: %llu\n", offset);
+            printf("x: %f\n", x[i_task]);
+            printf("y: %f\n", y[i_task]);
+            printf("d: %f\n", dist);
+        }
+
+        // if the distance is less than 1 then count them as inside
+        if (dist <= 1)
+        {
+            // atomic add
+            atomicAdd(&counter[i_repeat], 1);
+        }
     }
 }
 
@@ -52,25 +56,17 @@ int main(int argc, char** argv)
 
     int N_repeat = 1;
     unsigned long long N_darts = 1000000; // 1 million random points
-    bool do_overlap_transfer = false;
     bool verbose = false;
 
     // Always 256
     unsigned long long N_thread_per_block = 256; // 256 threads
 
     // If arguments are provided overwrite the default setting
-    if (argc > 4)
+    if (argc > 3)
     {
         N_repeat = atoi(argv[1]);
         N_darts = strtoull(argv[2], nullptr, 10);
-        do_overlap_transfer = atoi(argv[3]);
-        verbose = atoi(argv[4]);
-    }
-    else if (argc > 3)
-    {
-        N_repeat = atoi(argv[1]);
-        N_darts = strtoull(argv[2], nullptr, 10);
-        do_overlap_transfer = atoi(argv[3]);
+        verbose = atoi(argv[3]);
     }
     else if (argc > 2)
     {
@@ -81,6 +77,9 @@ int main(int argc, char** argv)
     {
         N_repeat = atoi(argv[1]);
     }
+
+    std::cout <<  " N_repeat: " << N_repeat <<  std::endl;
+    std::cout <<  " N_darts: " << N_darts <<  std::endl;
 
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -165,8 +164,11 @@ int main(int argc, char** argv)
     cudaEventRecord(startEvent, 0);
     cudaMemcpy(x_device, x_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(y_device, y_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
     count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_total_darts, 0, verbose);
+    cudaDeviceSynchronize();
     cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     cudaEventRecord(stopEvent, 0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
@@ -185,6 +187,7 @@ int main(int argc, char** argv)
     cudaEventRecord(startEvent, 0);
     cudaMemcpy(x_device, x_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(y_device, y_host, N_total_darts * sizeof(float), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
     auto time_tx_end = high_resolution_clock::now();
     float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
@@ -197,6 +200,7 @@ int main(int argc, char** argv)
     // Copy back the result
     auto time_rx_start = high_resolution_clock::now();
     cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     cudaEventRecord(stopEvent, 0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
