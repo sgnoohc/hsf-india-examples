@@ -187,25 +187,33 @@ int main(int argc, char** argv)
         for (int i = 0; i < N_repeat; ++i)
         {
 
-            auto time_tx_start = high_resolution_clock::now();
             // now copy over the host content to the allocated memory space on GPU
+            auto time_tx_start = high_resolution_clock::now();
             unsigned long long offset = i * N_darts;
             cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
             cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
             auto time_tx_end = high_resolution_clock::now();
             float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
+            auto time_exec_start = high_resolution_clock::now();
             unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
             count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
+            auto time_exec_end = high_resolution_clock::now();
+            float exec_time = duration_cast<microseconds>(time_exec_end - time_exec_start).count() / 1000.;
 
             // Copy back the result
+            auto time_rx_start = high_resolution_clock::now();
             int counter_offset = i;
             cudaMemcpy(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+            auto time_rx_end = high_resolution_clock::now();
+            float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
 
             // Add to the grand counter
             counter_dart_inside += counter_host[i];
 
             // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
+
+            std::cout <<  " i: " << i <<  " tx_time: " << tx_time <<  " exec_time: " << exec_time <<  " rx_time: " << rx_time <<  std::endl;
 
         }
     }
