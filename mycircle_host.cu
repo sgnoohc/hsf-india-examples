@@ -35,16 +35,9 @@ int main(int argc, char** argv)
 
     int N_repeat = 1;
     unsigned long long N_darts = 1000000; // 1 million random points
-    unsigned long long N_thread_per_block = 256; // 256 threads
     bool do_overlap_transfer = false;
 
     // If arguments are provided overwrite the default setting
-    if (argc > 3)
-    {
-        N_repeat = atoi(argv[1]);
-        N_darts = strtoull(argv[2], nullptr, 10);
-        N_thread_per_block = strtoull(argv[3], nullptr, 10);
-    }
     if (argc > 2)
     {
         N_repeat = atoi(argv[1]);
@@ -52,7 +45,7 @@ int main(int argc, char** argv)
     }
     else if (argc > 1)
     {
-        N_darts = strtoull(argv[2], nullptr, 10);
+        N_repeat = atoi(argv[1]);
     }
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~
@@ -102,8 +95,6 @@ int main(int argc, char** argv)
         // create a counter_host
         unsigned long long int* counter_host = new unsigned long long int;
 
-        auto mid = high_resolution_clock::now();
-
         count_darts_host(x_host, y_host, counter_host, N_darts);
 
         // Add to the grand counter
@@ -114,14 +105,6 @@ int main(int argc, char** argv)
     double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
-
-    auto stop = high_resolution_clock::now();
-
-    auto duration_1 = duration_cast<microseconds>(mid - start);
-    auto duration_2 = duration_cast<microseconds>(stop - mid);
-
-    std::cout <<  " duration_1.count(): " << duration_1.count() <<  std::endl;
-    std::cout <<  " duration_2.count(): " << duration_2.count() <<  std::endl;
 
     return 0;
 

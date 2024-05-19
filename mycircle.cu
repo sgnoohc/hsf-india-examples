@@ -50,14 +50,14 @@ int main(int argc, char** argv)
         N_darts = strtoull(argv[2], nullptr, 10);
         N_thread_per_block = strtoull(argv[3], nullptr, 10);
     }
-    if (argc > 2)
+    else if (argc > 2)
     {
         N_repeat = atoi(argv[1]);
         N_darts = strtoull(argv[2], nullptr, 10);
     }
     else if (argc > 1)
     {
-        N_darts = strtoull(argv[2], nullptr, 10);
+        N_repeat = atoi(argv[1]);
     }
 
     // Starting the clock
@@ -128,8 +128,6 @@ int main(int argc, char** argv)
         cudaMemcpy(x_device, x_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(y_device, y_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
 
-        auto mid = high_resolution_clock::now();
-
         unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
         count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts);
 
@@ -141,19 +139,19 @@ int main(int argc, char** argv)
         // Add to the grand counter
         counter_dart_inside += *counter_host;
 
+        free(x_host);
+        free(y_host);
+        free(counter_host);
+
+        cudaFree(x_device);
+        cudaFree(y_device);
+        cudaFree(counter_device);
+
     }
 
     double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
-
-    auto stop = high_resolution_clock::now();
-
-    auto duration_1 = duration_cast<microseconds>(mid - start);
-    auto duration_2 = duration_cast<microseconds>(stop - mid);
-
-    std::cout <<  " duration_1.count(): " << duration_1.count() <<  std::endl;
-    std::cout <<  " duration_2.count(): " << duration_2.count() <<  std::endl;
 
     return 0;
 
