@@ -168,6 +168,8 @@ int main(int argc, char** argv)
         // Add to the grand counter
         counter_dart_inside += counter_host[i];
 
+        std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
+
     }
 
     double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
