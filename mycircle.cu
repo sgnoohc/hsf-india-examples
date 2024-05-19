@@ -115,6 +115,8 @@ int main(int argc, char** argv)
         {
             x_host[i * N_darts + j] = distr(gen);
             y_host[i * N_darts + j] = distr(gen);
+            std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
+            std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
         }
 
     }
