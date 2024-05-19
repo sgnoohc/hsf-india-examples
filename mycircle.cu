@@ -5,7 +5,7 @@
 using namespace std::chrono;
 
 //__________________________________________________________________________________________
-__global__ void count_darts(double* x, double* y, unsigned long long* counter, int N_darts)
+__global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat)
 {
     int i_task = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -16,13 +16,14 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, i
     else
     {
         // compute the distance of the dart from the origin
-        double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
+        unsigned long long offset = i_repeat * N_darts;
+        double dist = sqrt(x[offset + i_task] * x[offset + i_task] + y[offset + i_task] * y[offset + i_task]);
 
         // if the distance is less than 1 then count them as inside
         if (dist <= 1)
         {
             // atomic add
-            atomicAdd(counter, 1);
+            atomicAdd(&counter[i_repeat], 1);
         }
     }
 }
@@ -151,7 +152,7 @@ int main(int argc, char** argv)
         cudaMemcpy(y_device + offset, y_host + offset, N_darts * sizeof(double), cudaMemcpyHostToDevice);
 
         unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-        count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts);
+        count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
 
         cudaDeviceSynchronize();
 
