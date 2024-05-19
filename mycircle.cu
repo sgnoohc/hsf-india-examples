@@ -46,15 +46,17 @@ int main(int argc, char** argv)
 
     int N_repeat = 1;
     unsigned long long N_darts = 1000000; // 1 million random points
-    unsigned long long N_thread_per_block = 256; // 256 threads
     bool do_overlap_transfer = false;
+
+    // Always 256
+    unsigned long long N_thread_per_block = 256; // 256 threads
 
     // If arguments are provided overwrite the default setting
     if (argc > 3)
     {
         N_repeat = atoi(argv[1]);
         N_darts = strtoull(argv[2], nullptr, 10);
-        N_thread_per_block = strtoull(argv[3], nullptr, 10);
+        do_overlap_transfer = atoi(argv[3]);
     }
     else if (argc > 2)
     {
