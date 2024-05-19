@@ -18,6 +18,11 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
         // compute the distance of the dart from the origin
         unsigned long long offset = i_repeat * N_darts;
         double dist = sqrt(x[offset + i_task] * x[offset + i_task] + y[offset + i_task] * y[offset + i_task]);
+        // printf("i: %d\n", i_task);
+        // printf("o: %d\n", offset);
+        // printf("x: %f\n", x[offset + i_task]);
+        // printf("y: %f\n", y[offset + i_task]);
+        // printf("d: %f\n", dist);
 
         // if the distance is less than 1 then count them as inside
         if (dist <= 1)
@@ -110,6 +115,11 @@ int main(int argc, char** argv)
         {
             x_host[i * N_darts + j] = distr(gen);
             y_host[i * N_darts + j] = distr(gen);
+            float dist = sqrt(pow(x_host[i*N_darts+j], 2) + pow(y_host[i*N_darts+j], 2));
+            // std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
+            // std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
+            // std::cout <<  " dist: " << dist <<  std::endl;
+
         }
 
     }
@@ -134,24 +144,55 @@ int main(int argc, char** argv)
     // Starting the clock
     auto start = high_resolution_clock::now();
 
-    for (int i = 0; i < N_repeat; ++i)
+    if (do_overlap_transfer)
     {
+        // Create Cuda Stream Lanes
+        cudaStream_t stream[N_repeat];
+        for (int i = 0; i < N_repeat; ++i)
+        {
 
-        // now copy over the host content to the allocated memory space on GPU
-        unsigned long long offset = i * N_darts;
-        cudaMemcpy(x_device + offset, x_host + offset, N_darts * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(y_device + offset, y_host + offset, N_darts * sizeof(double), cudaMemcpyHostToDevice);
+            // now copy over the host content to the allocated memory space on GPU
+            unsigned long long offset = i * N_darts;
+            cudaMemcpyAsync(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
+            cudaMemcpyAsync(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice, stream[i]);
 
-        unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-        count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
+            unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
+            count_darts<<<N_block, N_thread_per_block, 0, stream[i]>>>(x_device, y_device, counter_device, N_darts, i);
 
-        // Copy back the result
-        int counter_offset = i;
-        cudaMemcpy(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+            // Copy back the result
+            int counter_offset = i;
+            cudaMemcpyAsync(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
+        }
 
-        // Add to the grand counter
-        counter_dart_inside += counter_host[i];
+        
 
+            // Add to the grand counter
+            counter_dart_inside += counter_host[i];
+
+    }
+    else
+    {
+        for (int i = 0; i < N_repeat; ++i)
+        {
+
+            // now copy over the host content to the allocated memory space on GPU
+            unsigned long long offset = i * N_darts;
+            cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+            cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+
+            unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
+            count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
+
+            // Copy back the result
+            int counter_offset = i;
+            cudaMemcpy(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+
+            // Add to the grand counter
+            counter_dart_inside += counter_host[i];
+
+            // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
+
+        }
     }
 
     // Starting the clock
