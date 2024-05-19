@@ -90,43 +90,60 @@ int main(int argc, char** argv)
 
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Creating "darts"
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+    auto time1 = high_resolution_clock::now();
+
+    unsigned long long N_total_darts = N_darts * N_repeat;
+
+    // create a host (x, y) positions
+    double* x_host = new double[N_total_darts];
+    double* y_host = new double[N_total_darts];
+
+    for (int i = 0; i < N_repeat; ++i)
+    {
+
+        auto time1 = high_resolution_clock::now();
+
+        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        // Create a list of random (x, y)
+        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+        // Generate a random (x, y) positions
+        for (unsigned int j = 0; j < N_darts; ++j)
+        {
+            x_host[i * N_darts + j] = distr(gen);
+            y_host[i * N_darts + j] = distr(gen);
+        }
+
+    }
+
+    // create a host counter
+    unsigned long long* counter_host = new unsigned long long[N_repeat];
+
+    // allocate a device (x, y) positions memory
+    double* x_device;
+    double* y_device;
+    cudaMalloc((void**) &x_device, N_total_darts * sizeof(double));
+    cudaMalloc((void**) &y_device, N_total_darts * sizeof(double));
+
+    // allocate a device memory for answers for each repetition
+    unsigned long long* counter_device;
+    cudaMalloc((void**) &counter_device, N_repeat * sizeof(unsigned long long));
+
+    auto time2 = high_resolution_clock::now();
+
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
     // Repeating N times to throw more darts
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
     for (int i = 0; i < N_repeat; ++i)
     {
 
-        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-        // Create a list of random (x, y)
-        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-
-        // create a host (x, y) positions
-        double* x_host = new double[N_darts];
-        double* y_host = new double[N_darts];
-
-        // Generate a random (x, y) positions
-        for (unsigned int i = 0; i < N_darts; ++i)
-        {
-            x_host[i] = distr(gen);
-            y_host[i] = distr(gen);
-        }
-
-        // Create a counter_host
-        unsigned long long* counter_host = new unsigned long long;
-
-        // allocate a memory for device GPU
-        double* x_device;
-        double* y_device;
-        cudaMalloc((void**) &x_device, N_darts * sizeof(double));
-        cudaMalloc((void**) &y_device, N_darts * sizeof(double));
-
-        // create a counter in device GPU as well
-        unsigned long long* counter_device;
-        cudaMalloc((void**) &counter_device, sizeof(unsigned long long));
-
         // now copy over the host content to the allocated memory space on GPU
-        cudaMemcpy(x_device, x_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(y_device, y_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(x_device[i * N_darts], x_host[i * N_darts], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(y_device[i * N_darts], y_host[i * N_darts], N_darts * sizeof(double), cudaMemcpyHostToDevice);
 
         unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
         count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts);
@@ -134,24 +151,24 @@ int main(int argc, char** argv)
         cudaDeviceSynchronize();
 
         // Copy back the result
-        cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+        cudaMemcpy(counter_host[i], counter_device[i], sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
         // Add to the grand counter
-        counter_dart_inside += *counter_host;
-
-        free(x_host);
-        free(y_host);
-        free(counter_host);
-
-        cudaFree(x_device);
-        cudaFree(y_device);
-        cudaFree(counter_device);
+        counter_dart_inside += *counter_host[i];
 
     }
 
     double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
+
+    free(x_host);
+    free(y_host);
+    free(counter_host);
+
+    cudaFree(x_device);
+    cudaFree(y_device);
+    cudaFree(counter_device);
 
     return 0;
 
