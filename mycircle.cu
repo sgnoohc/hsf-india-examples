@@ -19,11 +19,6 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
         unsigned long long offset = i_repeat * N_darts;
         double dist = sqrt(x[offset + i_task] * x[offset + i_task] + y[offset + i_task] * y[offset + i_task]);
 
-        printf("i: %d\n", i_task);
-        printf("o: %d\n", offset);
-        printf("x: %f\n", x[offset + i_task]);
-        printf("y: %f\n", y[offset + i_task]);
-
         // if the distance is less than 1 then count them as inside
         if (dist <= 1)
         {
@@ -121,10 +116,6 @@ int main(int argc, char** argv)
         {
             x_host[i * N_darts + j] = distr(gen);
             y_host[i * N_darts + j] = distr(gen);
-            std::cout <<  " x_host[i*N_darts+j]: " << x_host[i*N_darts+j] <<  std::endl;
-            std::cout <<  " y_host[i*N_darts+j]: " << y_host[i*N_darts+j] <<  std::endl;
-            float dist = sqrt(pow(x_host[i*N_darts+j], 2) + pow(y_host[i*N_darts+j], 2));
-            std::cout <<  " dist: " << dist <<  std::endl;
         }
 
     }
@@ -159,16 +150,12 @@ int main(int argc, char** argv)
         unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
         count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
 
-        cudaDeviceSynchronize();
-
         // Copy back the result
         int counter_offset = i;
         cudaMemcpy(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
         // Add to the grand counter
         counter_dart_inside += counter_host[i];
-
-        std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
 
     }
 
