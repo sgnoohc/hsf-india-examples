@@ -19,6 +19,11 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
         unsigned long long offset = i_repeat * N_darts;
         double dist = sqrt(x[offset + i_task] * x[offset + i_task] + y[offset + i_task] * y[offset + i_task]);
 
+        printf("i: %d\n", i_task);
+        printf("o: %d\n", offset);
+        printf("x: %f\n", x[offset + i_task]);
+        printf("y: %f\n", y[offset + i_task]);
+
         // if the distance is less than 1 then count them as inside
         if (dist <= 1)
         {
