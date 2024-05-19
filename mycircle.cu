@@ -182,9 +182,9 @@ int main(int argc, char** argv)
 
     // now copy over the host content to the allocated memory space on GPU
     auto time_tx_start = high_resolution_clock::now();
+    cudaEventRecord(startEvent, 0);
     cudaMemcpy(x_device, x_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(y_device, y_host, N_total_darts * sizeof(double), cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
     auto time_tx_end = high_resolution_clock::now();
     float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
@@ -197,6 +197,10 @@ int main(int argc, char** argv)
     // Copy back the result
     auto time_rx_start = high_resolution_clock::now();
     cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaEventRecord(stopEvent, 0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&ms, startEvent, stopEvent);
+    printf("Time for sequential transfer and execute (ms): %f\n", ms);
     cudaDeviceSynchronize();
     auto time_rx_end = high_resolution_clock::now();
     float rx_time = duration_cast<microseconds>(time_rx_end - time_rx_start).count() / 1000.;
