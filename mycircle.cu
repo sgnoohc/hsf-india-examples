@@ -38,18 +38,26 @@ int main(int argc, char** argv)
     // Option settings
     //~*~*~*~*~*~*~*~*~*~*~*~*~
 
+    int N_repeat = 1;
     unsigned long long N_darts = 1000000; // 1 million random points
     unsigned long long N_thread_per_block = 256; // 256 threads
+    bool do_overlap_transfer = false;
 
     // If arguments are provided overwrite the default setting
+    if (argc > 3)
+    {
+        N_repeat = atoi(argv[1]);
+        N_darts = strtoull(argv[2], nullptr, 10);
+        N_thread_per_block = strtoull(argv[3], nullptr, 10);
+    }
     if (argc > 2)
     {
-        N_darts = strtoull(argv[1], nullptr, 10);
-        N_thread_per_block = strtoull(argv[2], nullptr, 10);
+        N_repeat = atoi(argv[1]);
+        N_darts = strtoull(argv[2], nullptr, 10);
     }
     else if (argc > 1)
     {
-        N_darts = strtoull(argv[1], nullptr, 10);
+        N_darts = strtoull(argv[2], nullptr, 10);
     }
 
     // Starting the clock
@@ -68,50 +76,74 @@ int main(int argc, char** argv)
     // create a uniform real distribution between [0.0, 1.0)
     std::uniform_real_distribution<> distr(0.0, 1.0);
 
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // The "Answer"
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Create a counter_dart_inside
+    // This will count total number of how many fell
+    // inside the quarter-circle in all tries
+    // Then once we count how many total inside vs. total thrown,
+    // from there we can estimate the pi by taking the fraction
+    // Since the circle is a unit circle the area is supposed to be pi/4.
+    // So the fraction should equal to pi/4.
+    unsigned long long counter_dart_inside = 0;
 
-    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
-    // Create a list of random (x, y)
-    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    // create a host (x, y) positions
-    double* x_host = new double[N_darts];
-    double* y_host = new double[N_darts];
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+    // Repeating N times to throw more darts
+    //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
 
-    // Generate a random (x, y) positions
-    for (unsigned int i = 0; i < N_darts; ++i)
+    for (int i = 0; i < N_repeat; ++i)
     {
-        x_host[i] = distr(gen);
-        y_host[i] = distr(gen);
+
+        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+        // Create a list of random (x, y)
+        //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~
+
+        // create a host (x, y) positions
+        double* x_host = new double[N_darts];
+        double* y_host = new double[N_darts];
+
+        // Generate a random (x, y) positions
+        for (unsigned int i = 0; i < N_darts; ++i)
+        {
+            x_host[i] = distr(gen);
+            y_host[i] = distr(gen);
+        }
+
+        // Create a counter_host
+        unsigned long long* counter_host = new unsigned long long;
+
+        // allocate a memory for device GPU
+        double* x_device;
+        double* y_device;
+        cudaMalloc((void**) &x_device, N_darts * sizeof(double));
+        cudaMalloc((void**) &y_device, N_darts * sizeof(double));
+
+        // create a counter in device GPU as well
+        unsigned long long* counter_device;
+        cudaMalloc((void**) &counter_device, sizeof(unsigned long long));
+
+        // now copy over the host content to the allocated memory space on GPU
+        cudaMemcpy(x_device, x_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(y_device, y_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
+
+        auto mid = high_resolution_clock::now();
+
+        unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
+        count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts);
+
+        cudaDeviceSynchronize();
+
+        // Copy back the result
+        cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+
+        // Add to the grand counter
+        counter_dart_inside += *counter_host;
+
     }
 
-    // create a counter_host
-    unsigned long long* counter_host = new unsigned long long;
-
-    // allocate a memory for device GPU
-    double* x_device;
-    double* y_device;
-    cudaMalloc((void**) &x_device, N_darts * sizeof(double));
-    cudaMalloc((void**) &y_device, N_darts * sizeof(double));
-
-    // create a counter in device GPU as well
-    unsigned long long* counter_device;
-    cudaMalloc((void**) &counter_device, sizeof(unsigned long long));
-
-    // now copy over the host content to the allocated memory space on GPU
-    cudaMemcpy(x_device, x_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(y_device, y_host, N_darts * sizeof(double), cudaMemcpyHostToDevice);
-
-    auto mid = high_resolution_clock::now();
-
-    unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
-    count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts);
-
-    cudaDeviceSynchronize();
-
-    // Copy back the result
-    cudaMemcpy(counter_host, counter_device, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-
-    double pi_estimate = ((double)*counter_host) / N_darts * 4.;
+    double pi_estimate = ((double)counter_dart_inside) / (N_darts * N_repeat) * 4.;
 
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
 
