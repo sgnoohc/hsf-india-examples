@@ -3,11 +3,11 @@
 #include <chrono>
 using namespace std::chrono;
 
-void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data)
+void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data, unsigned long long int N_ops)
 {
     for (unsigned long long int i_data = 0; i_data < N_data; ++i_data)
     {
-        for (unsigned i = 0; i < 200; ++i)
+        for (unsigned i = 0; i < N_ops; ++i)
         {
             C[i_data] = A[i_data] + B[i_data];
         }
@@ -17,11 +17,11 @@ void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data)
 int main(int argc, char** argv)
 {
 
-    if (argc < 2)
+    if (argc < 3)
     {
         std::cout << "Usage:" << std::endl;
         std::cout << std::endl;
-        std::cout << "    " << argv[0] << " N_data" << std::endl;
+        std::cout << "    " << argv[0] << " N_data N_ops" << std::endl;
         std::cout << std::endl;
         std::cout << std::endl;
         return 1;
@@ -30,6 +30,7 @@ int main(int argc, char** argv)
     auto start = high_resolution_clock::now();
 
     unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
+    unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
 
     float* A_host = new float[N_data];
     float* B_host = new float[N_data];
@@ -43,7 +44,7 @@ int main(int argc, char** argv)
 
     auto mid = high_resolution_clock::now();
 
-    vec_add_host(A_host, B_host, C_host, N_data);
+    vec_add_host(A_host, B_host, C_host, N_data, N_ops);
 
     auto end = high_resolution_clock::now();
 
@@ -53,11 +54,15 @@ int main(int argc, char** argv)
         std::cout <<  " i: " << i <<  " C_host[i]: " << C_host[i] <<  std::endl;
     }
 
-    float time_init = duration_cast<microseconds>(mid - start).count();
-    float time_exec = duration_cast<microseconds>(end - mid).count();
+    float time_init = duration_cast<microseconds>(mid - start).count() / 1000.;
+    float time_exec = duration_cast<microseconds>(end - mid).count() / 1000.;
+    float time_tota = duration_cast<microseconds>(end - start).count() / 1000.;
 
     std::cout <<  " time_init: " << time_init <<  std::endl;
     std::cout <<  " time_exec: " << time_exec <<  std::endl;
+    std::cout <<  " time_tota: " << time_tota <<  std::endl;
+
+    std::cout << "Result:," << time_init << ",0,0," << time_exec << ",0," << time_tota << std::endl;
 
     float P_frac = time_exec / (time_init + time_exec);
 

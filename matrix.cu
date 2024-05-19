@@ -6,7 +6,7 @@ using namespace std::chrono;
 
 int main(int argc, char** argv)
 {
-    unsigned long long dim = 2;
+    unsigned long long dim = 20;
     unsigned long long A_nrow = dim;
     unsigned long long A_ncol = dim;
     unsigned long long B_nrow = A_ncol;
