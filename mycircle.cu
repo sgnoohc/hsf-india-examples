@@ -7,7 +7,9 @@ using namespace std::chrono;
 //__________________________________________________________________________________________
 __global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat)
 {
-    int i_task = threadIdx.x + blockDim.x * blockIdx.x;
+    // compute the distance of the dart from the origin
+    unsigned long long offset = i_repeat * N_darts;
+    int i_task = threadIdx.x + blockDim.x * blockIdx.x + offset;
 
     if (i_task >= N_darts)
     {
@@ -15,9 +17,7 @@ __global__ void count_darts(double* x, double* y, unsigned long long* counter, u
     }
     else
     {
-        // compute the distance of the dart from the origin
-        unsigned long long offset = i_repeat * N_darts;
-        double dist = sqrt(x[offset + i_task] * x[offset + i_task] + y[offset + i_task] * y[offset + i_task]);
+        double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
         // printf("i: %d\n", i_task);
         // printf("o: %d\n", offset);
         // printf("x: %f\n", x[offset + i_task]);
@@ -150,6 +150,7 @@ int main(int argc, char** argv)
     {
         // Create Cuda Stream Lanes
         cudaStream_t stream[N_repeat];
+
         for (int i = 0; i < N_repeat; ++i)
         {
 
@@ -163,7 +164,7 @@ int main(int argc, char** argv)
 
             // Copy back the result
             int counter_offset = i;
-            cudaMemcpyAsync(counter_host + counter_offset, counter_device + counter_offset, sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
+            cudaMemcpyAsync(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
         }
 
         // Wait until all is done
