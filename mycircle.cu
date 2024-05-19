@@ -7,29 +7,30 @@ using namespace std::chrono;
 //__________________________________________________________________________________________
 __global__ void count_darts(double* x, double* y, unsigned long long* counter, unsigned long long N_darts, int i_repeat)
 {
-    // compute the distance of the dart from the origin
-    unsigned long long offset = i_repeat * N_darts;
-    int i_task = threadIdx.x + blockDim.x * blockIdx.x + offset;
+    // Get this specific thread unique index
+    unsigned long long i_task = threadIdx.x + blockDim.x * blockIdx.x;
 
+    // check that it is within N_darts if not exit
     if (i_task >= N_darts)
-    {
         return;
-    }
-    else
-    {
-        double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
-        // printf("i: %d\n", i_task);
-        // printf("o: %d\n", offset);
-        // printf("x: %f\n", x[offset + i_task]);
-        // printf("y: %f\n", y[offset + i_task]);
-        // printf("d: %f\n", dist);
 
-        // if the distance is less than 1 then count them as inside
-        if (dist <= 1)
-        {
-            // atomic add
-            atomicAdd(&counter[i_repeat], 1);
-        }
+    // compute offset and correct i_task
+    unsigned long long offset = i_repeat * N_darts;
+    i_task += offset;
+
+    // compute the distance of the dart from the origin
+    double dist = sqrt(x[i_task] * x[i_task] + y[i_task] * y[i_task]);
+    // printf("i: %llu\n", i_task);
+    // printf("o: %llu\n", offset);
+    // printf("x: %f\n", x[offset + i_task]);
+    // printf("y: %f\n", y[offset + i_task]);
+    // printf("d: %f\n", dist);
+
+    // if the distance is less than 1 then count them as inside
+    if (dist <= 1)
+    {
+        // atomic add
+        atomicAdd(&counter[i_repeat], 1);
     }
 }
 
@@ -153,6 +154,11 @@ int main(int argc, char** argv)
 
         for (int i = 0; i < N_repeat; ++i)
         {
+            cudaStreamCreate(&stream[i]);
+        }
+
+        for (int i = 0; i < N_repeat; ++i)
+        {
 
             // now copy over the host content to the allocated memory space on GPU
             unsigned long long offset = i * N_darts;
@@ -167,13 +173,12 @@ int main(int argc, char** argv)
             cudaMemcpyAsync(&counter_host[counter_offset], &counter_device[counter_offset], sizeof(unsigned long long), cudaMemcpyDeviceToHost, stream[i]);
         }
 
-        // Wait until all is done
-        cudaDeviceSynchronize();
-
         // Add to the grand counter
         for (int i = 0; i < N_repeat; ++i)
         {
+            cudaStreamSynchronize(stream[i]);
             counter_dart_inside += counter_host[i];
+            // std::cout <<  " counter_dart_inside: " << counter_dart_inside <<  std::endl;
         }
 
     }
@@ -182,10 +187,13 @@ int main(int argc, char** argv)
         for (int i = 0; i < N_repeat; ++i)
         {
 
+            auto time_tx_start = high_resolution_clock::now();
             // now copy over the host content to the allocated memory space on GPU
             unsigned long long offset = i * N_darts;
             cudaMemcpy(&x_device[offset], &x_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
             cudaMemcpy(&y_device[offset], &y_host[offset], N_darts * sizeof(double), cudaMemcpyHostToDevice);
+            auto time_tx_end = high_resolution_clock::now();
+            float tx_time = duration_cast<microseconds>(time_tx_end - time_tx_start).count() / 1000.;
 
             unsigned long long N_block = (N_darts - 0.5) / N_thread_per_block + 1;
             count_darts<<<N_block, N_thread_per_block>>>(x_device, y_device, counter_device, N_darts, i);
