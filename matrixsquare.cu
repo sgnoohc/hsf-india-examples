@@ -55,12 +55,12 @@ int main(int argc, char** argv)
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);
 
-    // // create cuda streams
-    // cudaStream_t stream[n_repeat];
-    // for (int i = 0; i < n_repeat; ++i)
-    // {
-    //     cudaStreamCreate(&stream[i]);
-    // }
+    // create cuda streams
+    cudaStream_t stream[n_repeat];
+    for (int i = 0; i < n_repeat; ++i)
+    {
+        cudaStreamCreate(&stream[i]);
+    }
 
     // variable to read out time
     float ms;
