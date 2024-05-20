@@ -32,7 +32,7 @@ int main()
     std::cout << "################################" << std::endl;
 
     // we will launch 2048 blocks
-    myInt_t grid_size = pow(2, 14);
+    myInt_t grid_size = pow(2, 18);
 
     // we will generate 512 points each block
     myInt_t block_size = 512;
