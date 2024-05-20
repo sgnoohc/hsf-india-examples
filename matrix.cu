@@ -131,34 +131,19 @@ int main(int argc, char** argv)
     for (int i = 0 ; i < n_repeat; ++i)
     {
         // copy the host values to device memory
-        // cudaEventRecord(startTask, 0);
         cudaMemcpy(A_device, A_host, A_ntot * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(B_device, B_host, B_ntot * sizeof(double), cudaMemcpyHostToDevice);
-        // cudaEventRecord(stopTask, 0);
-        // cudaEventSynchronize(stopTask);
-        // cudaEventElapsedTime(&ms, startTask, stopTask);
-        // printf(" Time tx    (ms): %f\n", ms);
 
         // run the matrix multiplication calculation
-        // cudaEventRecord(startTask, 0);
         mult<<<gridDim, blockDim>>>(
             A_device, B_device, C_device,
             A_nrow, A_ncol,
             B_nrow, B_ncol,
             C_nrow, C_ncol, 0 /*no offset*/);
         cudaDeviceSynchronize();
-        // cudaEventRecord(stopTask, 0);
-        // cudaEventSynchronize(stopTask);
-        // cudaEventElapsedTime(&ms, startTask, stopTask);
-        // printf(" Time exec  (ms): %f\n", ms);
 
         // retrieve results
-        // cudaEventRecord(startTask, 0);
         cudaMemcpy(C_host, C_device, C_ntot * sizeof(double), cudaMemcpyDeviceToHost);
-        // cudaEventRecord(stopTask, 0);
-        // cudaEventSynchronize(stopTask);
-        // cudaEventElapsedTime(&ms, startTask, stopTask);
-        // printf(" Time rx    (ms): %f\n", ms);
     }
 
     // end the overall timer
@@ -240,22 +225,6 @@ int main(int argc, char** argv)
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
     printf(" Time total (ms): %f\n", ms);
     printf("\n");
-
-    // checking the output that it computed correctly
-    printf(" --- Sanity Check ---\n");
-    for (int i = 0; i < n_repeat; ++i)
-    {
-        for (myInt_t ii = 0; ii < C_nrow; ++ii)
-        {
-            for (myInt_t jj = 0; jj < C_ncol; ++jj)
-            {
-                double elem = C_host_overlap[ii * C_ncol + jj + C_ntot * i];
-                printf("%9.2f ", elem);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
 
 
     // cleanup
