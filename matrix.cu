@@ -240,7 +240,7 @@ int main(int argc, char** argv)
     printf("\n");
 
     // checking the output that it computed correctly
-    printf(" --- Sanity Check ---");
+    printf(" --- Sanity Check ---\n");
     for (int i = 0; i < n_repeat; ++i)
     {
         for (myInt_t ii = 0; ii < C_nrow; ++ii)
