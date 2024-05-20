@@ -35,6 +35,13 @@ __global__ void mult(double* A,
 int main(int argc, char** argv)
 {
 
+    std::cout << "################################" << std::endl;
+    std::cout << "#                              #" << std::endl;
+    std::cout << "#    Matrix Multiplication     #" << std::endl;
+    std::cout << "#     (Overlap Transfer)       #" << std::endl;
+    std::cout << "#                              #" << std::endl;
+    std::cout << "################################" << std::endl;
+
     // goal: Perform N times A * B = C matrix multiplication
     myInt_t n_repeat = 4;
 
@@ -99,7 +106,7 @@ int main(int argc, char** argv)
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 
-    printf("Sequential run\n");
+    printf(" --- Sequential Run ---\n");
 
     // create pointer to the device matrix input
     double* A_device;
@@ -130,7 +137,7 @@ int main(int argc, char** argv)
         cudaEventRecord(stopTask, 0);
         cudaEventSynchronize(stopTask);
         cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf("Time tx    (ms): %f\n", ms);
+        printf(" Time tx    (ms): %f\n", ms);
 
         // run the matrix multiplication calculation
         cudaEventRecord(startTask, 0);
@@ -143,7 +150,7 @@ int main(int argc, char** argv)
         cudaEventRecord(stopTask, 0);
         cudaEventSynchronize(stopTask);
         cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf("Time exec  (ms): %f\n", ms);
+        printf(" Time exec  (ms): %f\n", ms);
 
         // retrieve results
         cudaEventRecord(startTask, 0);
@@ -151,20 +158,21 @@ int main(int argc, char** argv)
         cudaEventRecord(stopTask, 0);
         cudaEventSynchronize(stopTask);
         cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf("Time rx    (ms): %f\n", ms);
+        printf(" Time rx    (ms): %f\n", ms);
     }
 
     // end the overall timer
     cudaEventRecord(stopEvent, 0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
-    printf("Time total (ms): %f\n", ms);
+    printf(" Time total (ms): %f\n", ms);
+    printf("\n", ms);
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 
-    printf("Overlapping run\n");
+    printf(" --- Overlapping Run ---\n");
 
     // we store in single dimension where row is assumed first
     double* A_host_overlap = new double[n_repeat * A_ntot];
@@ -228,9 +236,11 @@ int main(int argc, char** argv)
     cudaEventRecord(stopEvent, 0);
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
-    printf("Time total (ms): %f\n", ms);
+    printf(" Time total (ms): %f\n", ms);
+    printf("\n");
 
     // checking the output that it computed correctly
+    printf(" --- Sanity Check ---");
     for (int i = 0; i < n_repeat; ++i)
     {
         for (myInt_t ii = 0; ii < C_nrow; ++ii)
