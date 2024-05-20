@@ -16,8 +16,9 @@ __global__ void madd(float* A,
     if (row >= m_dim || col >= m_dim)
         return;
 
-    float Aval = A[m_dim * row + ii + ioffset * m_dim * m_dim];
-    B[row * m_dim + col + ioffset * m_dim * m_dim] = Aval + Aval;
+    int idx = m_dim * row + col + ioffset * m_dim * m_dim;
+    float Aval = A[idx];
+    B[idx] = Aval + Aval;
 }
 
 int main(int argc, char** argv)
