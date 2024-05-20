@@ -55,12 +55,12 @@ int main(int argc, char** argv)
     cudaEventCreate(&startEvent);
     cudaEventCreate(&stopEvent);
 
-    // create cuda streams
-    cudaStream_t stream[n_repeat];
-    for (int i = 0; i < n_repeat; ++i)
-    {
-        cudaStreamCreate(&stream[i]);
-    }
+    // // create cuda streams
+    // cudaStream_t stream[n_repeat];
+    // for (int i = 0; i < n_repeat; ++i)
+    // {
+    //     cudaStreamCreate(&stream[i]);
+    // }
 
     // variable to read out time
     float ms;
@@ -119,66 +119,67 @@ int main(int argc, char** argv)
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 
-    printf(" --- Overlapping Run ---\n");
+    // printf(" --- Overlapping Run ---\n");
 
-    // we store in single dimension where row is assumed first
-    float* A_host_overlap = new float[n_repeat * m_tot];
-    float* B_host_overlap = new float[n_repeat * m_tot];
+    // // we store in single dimension where row is assumed first
+    // float* A_host_overlap = new float[n_repeat * m_tot];
+    // float* B_host_overlap = new float[n_repeat * m_tot];
 
-    // we set n_repeat times
-    for (int i = 0; i < n_repeat; ++i)
-    {
-        // for now for simplicity we set all to 1 for A
-        for (int ii = 0; ii < m_tot; ++ii)
-        {
-            A_host_overlap[ii + i * m_tot] = 1;
-        }
-    }
+    // // we set n_repeat times
+    // for (int i = 0; i < n_repeat; ++i)
+    // {
+    //     // for now for simplicity we set all to 1 for A
+    //     for (int ii = 0; ii < m_tot; ++ii)
+    //     {
+    //         A_host_overlap[ii + i * m_tot] = 1;
+    //     }
+    // }
 
-    // create pointer to the device matrix input
-    float* A_overlap;
-    float* B_overlap;
+    // // create pointer to the device matrix input
+    // float* A_overlap;
+    // float* B_overlap;
 
-    // allocate memory to the pointer
-    cudaMalloc((void**) &A_overlap, 4 * m_tot * sizeof(float));
-    cudaMalloc((void**) &B_overlap, 4 * m_tot * sizeof(float));
+    // // allocate memory to the pointer
+    // cudaMalloc((void**) &A_overlap, 4 * m_tot * sizeof(float));
+    // cudaMalloc((void**) &B_overlap, 4 * m_tot * sizeof(float));
 
-    // start the overall timer
-    cudaEventRecord(startEvent, 0);
+    // // start the overall timer
+    // cudaEventRecord(startEvent, 0);
 
-    for (int i = 0; i < n_repeat; ++i)
-    {
-        int offset = i * m_tot;
-        // copy the host values to device memory
-        cudaMemcpyAsync(&A_overlap[offset], &A_host_overlap[offset], m_tot * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
+    // for (int i = 0; i < n_repeat; ++i)
+    // {
+    //     int offset = i * m_tot;
+    //     // copy the host values to device memory
+    //     cudaMemcpyAsync(&A_overlap[offset], &A_host_overlap[offset], m_tot * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
 
-        // run the matrix maddiplication calculation
-        madd<<<grid_size, block_size, 0, stream[i]>>>( A_device, B_device, m_dim, i /*no offset*/);
+    //     // run the matrix maddiplication calculation
+    //     madd<<<grid_size, block_size, 0, stream[i]>>>( A_device, B_device, m_dim, i /*no offset*/);
 
-        // retrieve results
-        cudaMemcpyAsync(&B_host_overlap[offset], &B_overlap[offset], m_tot * sizeof(float), cudaMemcpyDeviceToHost, stream[i]);
-    }
+    //     // retrieve results
+    //     cudaMemcpyAsync(&B_host_overlap[offset], &B_overlap[offset], m_tot * sizeof(float), cudaMemcpyDeviceToHost, stream[i]);
+    // }
 
-    // end the overall timer
-    cudaEventRecord(stopEvent, 0);
-    cudaEventSynchronize(stopEvent);
-    cudaEventElapsedTime(&ms, startEvent, stopEvent);
-    printf(" Time total (ms): %f\n", ms);
-    printf("\n");
+    // // end the overall timer
+    // cudaEventRecord(stopEvent, 0);
+    // cudaEventSynchronize(stopEvent);
+    // cudaEventElapsedTime(&ms, startEvent, stopEvent);
+    // printf(" Time total (ms): %f\n", ms);
+    // printf("\n");
 
 
     // cleanup
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
-    for (int i = 0; i < n_repeat; ++i)
-        cudaStreamDestroy(stream[i]);
     cudaFree(A_device);
     cudaFree(B_device);
-    cudaFree(A_overlap);
-    cudaFree(B_overlap);
     free(A_host);
     free(B_host);
-    free(A_host_overlap);
-    free(B_host_overlap);
+
+    // for (int i = 0; i < n_repeat; ++i)
+    //     cudaStreamDestroy(stream[i]);
+    // cudaFree(A_overlap);
+    // cudaFree(B_overlap);
+    // free(A_host_overlap);
+    // free(B_host_overlap);
 
 }
