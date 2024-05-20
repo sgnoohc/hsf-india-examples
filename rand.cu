@@ -3,7 +3,7 @@
 #include <curand.h>
 #include <curand_kernel.h>
 
-#define MYCOUNTER unsigned long long
+#define myInt_t unsigned long long
 
 __global__ void setup_curandState(curandState* state)
 {
@@ -11,7 +11,7 @@ __global__ void setup_curandState(curandState* state)
     curand_init(1234, idx, 0, &state[idx]);
 }
 
-__global__ void throw_dart(curandState* state, MYCOUNTER* n_inside)
+__global__ void throw_dart(curandState* state, myInt_t* n_inside)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     double x = curand_uniform(&state[idx]);
@@ -30,13 +30,13 @@ int main()
     //~*~*~*~*~*~*~*~*~*~*~
 
     // we will launch 2048 blocks
-    MYCOUNTER grid_size = pow(2, 18);
+    myInt_t grid_size = pow(2, 18);
 
     // we will generate 512 points each block
-    MYCOUNTER block_size = 512;
+    myInt_t block_size = 512;
 
     // total threads
-    MYCOUNTER n_total_threads = grid_size * block_size;
+    myInt_t n_total_threads = grid_size * block_size;
 
     // create a pointer to the array of random state
     // each random state can be used to generate random number
@@ -52,10 +52,10 @@ int main()
     cudaDeviceSynchronize();
 
     // setup a counter
-    MYCOUNTER* n_inside_device;
+    myInt_t* n_inside_device;
 
     // allocate memory
-    cudaMalloc((void**) &n_inside_device, sizeof(MYCOUNTER));
+    cudaMalloc((void**) &n_inside_device, sizeof(myInt_t));
 
     // actually throw the dart and count how many are inside
     throw_dart<<<grid_size, block_size>>>(state_device, n_inside_device);
@@ -64,10 +64,10 @@ int main()
     cudaDeviceSynchronize();
 
     // create a counter on host to copy device number to
-    MYCOUNTER* n_inside_host = new MYCOUNTER;
+    myInt_t* n_inside_host = new myInt_t;
 
     // copy the result to host
-    cudaMemcpy(n_inside_host, n_inside_device, sizeof(MYCOUNTER), cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_inside_host, n_inside_device, sizeof(myInt_t), cudaMemcpyDeviceToHost);
 
     // estimate pi by counting fraction
     double pi_estimate = (double) *n_inside_host / n_total_threads * 4.;
