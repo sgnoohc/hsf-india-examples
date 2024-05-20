@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     std::cout << "#################################" << std::endl;
 
     unsigned long long int N_data = 10000000;
-    unsigned long long int N_ops = 10000;
+    unsigned long long int N_ops = 1000;
 
     auto start = high_resolution_clock::now();
 
