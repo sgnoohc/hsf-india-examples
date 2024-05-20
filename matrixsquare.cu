@@ -6,7 +6,7 @@ using namespace std::chrono;
 
 __global__ void mult(float* A,
                      float* B,
-                     int m_dim
+                     int m_dim,
                      int ioffset)
 {
     int row = blockDim.x * blockIdx.x + threadIdx.x;
@@ -16,14 +16,14 @@ __global__ void mult(float* A,
     if (row >= m_dim || col >= m_dim)
         return;
 
-    float Bval = 0
+    float Bval = 0;
     for (int ii = 0; ii < m_dim; ++ii)
     {
         float Aval_row = A[m_dim * row + ii + ioffset * m_dim * m_dim];
         float Aval_col = A[m_dim * ii + row + ioffset * m_dim * m_dim];
         Bval += Aval * Aval;
     }
-    B[row * m_dim + col + ioffset * m_dim * m_dim]
+    B[row * m_dim + col + ioffset * m_dim * m_dim] = Bval;
 }
 
 int main(int argc, char** argv)
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     float* B_host = new float[m_tot];
 
     // for now for simplicity we set all to 1 for A
-    for (int ii = 0; ii < A_ntot; ++ii)
+    for (int ii = 0; ii < m_dim; ++ii)
     {
         A_host[ii] = 1;
     }
@@ -81,11 +81,11 @@ int main(int argc, char** argv)
 
     // create pointer to the device matrix input
     float* A_device;
-    float* C_device;
+    float* B_device;
 
     // allocate memory to the pointer
     cudaMalloc((void**) &A_device, m_tot * sizeof(float));
-    cudaMalloc((void**) &C_device, m_tot * sizeof(float));
+    cudaMalloc((void**) &B_device, m_tot * sizeof(float));
 
     // warm up run
     mult<<<grid_size, block_size>>>( A_device, B_device, m_dim, 0 /*no offset*/);
@@ -190,8 +190,8 @@ int main(int argc, char** argv)
     // cleanup
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
-    for (int i = 0; i < n_repeat; ++i)
-        cudaStreamDestroy(stream[i]);
+    // for (int i = 0; i < n_repeat; ++i)
+    //     cudaStreamDestroy(stream[i]);
     cudaFree(A_device);
     cudaFree(B_device);
     // cudaFree(A_overlap);
