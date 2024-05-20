@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     const int n_repeat = 4;
 
     // A matrix dimension and total element definition
-    const int m_dim = 1024;
+    const int m_dim = 2048;
     const int m_tot = m_dim * m_dim;
 
     // we will perform each element as one thread
