@@ -4,7 +4,7 @@
 #include <chrono>
 using namespace std::chrono;
 
-__global__ void mult(float* A,
+__global__ void madd(float* A,
                      float* B,
                      int m_dim,
                      int ioffset)
@@ -16,14 +16,8 @@ __global__ void mult(float* A,
     if (row >= m_dim || col >= m_dim)
         return;
 
-    float Bval = 0;
-    for (int ii = 0; ii < m_dim; ++ii)
-    {
-        float Aval_row = A[m_dim * row + ii + ioffset * m_dim * m_dim];
-        float Aval_col = A[m_dim * ii + row + ioffset * m_dim * m_dim];
-        Bval += Aval_row * Aval_col;
-    }
-    B[row * m_dim + col + ioffset * m_dim * m_dim] = Bval;
+    float Aval = A[m_dim * row + ii + ioffset * m_dim * m_dim];
+    B[row * m_dim + col + ioffset * m_dim * m_dim] = Aval + Aval;
 }
 
 int main(int argc, char** argv)
@@ -31,12 +25,12 @@ int main(int argc, char** argv)
 
     std::cout << "################################" << std::endl;
     std::cout << "#                              #" << std::endl;
-    std::cout << "#       Matrix Square          #" << std::endl;
+    std::cout << "#         Matrix Sum           #" << std::endl;
     std::cout << "#     (Overlap Transfer)       #" << std::endl;
     std::cout << "#                              #" << std::endl;
     std::cout << "################################" << std::endl;
 
-    // goal: Perform N times A * A = B matrix squaring
+    // goal: Perform N times A + A = B matrix squaring
     const int n_repeat = 4;
 
     // A matrix dimension and total element definition
@@ -88,7 +82,7 @@ int main(int argc, char** argv)
     cudaMalloc((void**) &B_device, m_tot * sizeof(float));
 
     // warm up run
-    mult<<<grid_size, block_size>>>( A_device, B_device, m_dim, 0 /*no offset*/);
+    madd<<<grid_size, block_size>>>( A_device, B_device, m_dim, 0 /*no offset*/);
 
     // start the overall timer
     cudaEventRecord(startEvent, 0);
@@ -98,8 +92,8 @@ int main(int argc, char** argv)
         // copy the host values to device memory
         cudaMemcpy(A_device, A_host, m_tot * sizeof(float), cudaMemcpyHostToDevice);
 
-        // run the matrix multiplication calculation
-        mult<<<grid_size, block_size>>>( A_device, B_device, m_dim, 0 /*no offset*/);
+        // run the matrix maddiplication calculation
+        madd<<<grid_size, block_size>>>( A_device, B_device, m_dim, 0 /*no offset*/);
         cudaDeviceSynchronize();
 
         // retrieve results
@@ -168,8 +162,8 @@ int main(int argc, char** argv)
     //    cudaMemcpyAsync(&A_overlap[i * A_ntot], &A_host_overlap[i * A_ntot], A_ntot * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
     //    cudaMemcpyAsync(&B_overlap[i * B_ntot], &B_host_overlap[i * B_ntot], B_ntot * sizeof(float), cudaMemcpyHostToDevice, stream[i]);
 
-    //    // run the matrix multiplication calculation
-    //    mult<<<grid_size, block_size, 0, stream[i]>>>(
+    //    // run the matrix maddiplication calculation
+    //    madd<<<grid_size, block_size, 0, stream[i]>>>(
     //        A_overlap, B_overlap, C_overlap,
     //        A_nrow, A_ncol,
     //        B_nrow, B_ncol,
