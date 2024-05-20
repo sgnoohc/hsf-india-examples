@@ -46,13 +46,13 @@ int main(int argc, char** argv)
     myInt_t n_repeat = 4;
 
     // A matrix dimension and total element definition
-    myInt_t A_nrow = 5;
-    myInt_t A_ncol = 200;
+    myInt_t A_nrow = 8;
+    myInt_t A_ncol = 64;
     myInt_t A_ntot = A_nrow * A_ncol;
 
     // B matrix dimension and total element definition
-    myInt_t B_nrow = 200;
-    myInt_t B_ncol = 5;
+    myInt_t B_nrow = 64;
+    myInt_t B_ncol = 8;
     myInt_t B_ntot = B_nrow * B_ncol;
 
     // C matrix dimension and total element definition
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 
     // we will perform each element as one thread
     // 4 element x 4 element will be computed per thread block
-    myInt_t n_thread_dim = 16;
+    myInt_t n_thread_dim = 8;
 
     // then the block dimensions are defined
     dim3 blockDim(n_thread_dim, n_thread_dim, 1);
