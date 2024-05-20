@@ -17,6 +17,9 @@ void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data, u
 int main(int argc, char** argv)
 {
 
+    unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
+    unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
+
     if (argc < 3)
     {
         std::cout << "Usage:" << std::endl;
@@ -27,10 +30,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto start = high_resolution_clock::now();
-
     unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
     unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
+
+    auto start = high_resolution_clock::now();
 
     float* A_host = new float[N_data];
     float* B_host = new float[N_data];
@@ -61,8 +64,6 @@ int main(int argc, char** argv)
     std::cout <<  " time_init: " << time_init <<  std::endl;
     std::cout <<  " time_exec: " << time_exec <<  std::endl;
     std::cout <<  " time_tota: " << time_tota <<  std::endl;
-
-    std::cout << "Result:," << time_init << ",0,0," << time_exec << ",0," << time_tota << std::endl;
 
     float P_frac = time_exec / (time_init + time_exec);
 
