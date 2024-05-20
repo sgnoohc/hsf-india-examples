@@ -4,6 +4,16 @@
 #include <chrono>
 using namespace std::chrono;
 
+#define checkCuda(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+{
+    if (code != cudaSuccess)
+    {
+        fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        if (abort) exit(code);
+    }
+}
+
 __global__ void madd(float* A,
                      float* B,
                      int m_dim,
@@ -176,14 +186,14 @@ int main(int argc, char** argv)
     cudaEventDestroy(stopEvent);
     cudaFree(A_device);
     cudaFree(B_device);
-    free(A_host);
-    free(B_host);
+    cudaFreeHost(A_host);
+    cudaFreeHost(B_host);
 
     for (int i = 0; i < n_repeat; ++i)
         cudaStreamDestroy(stream[i]);
     cudaFree(A_overlap);
     cudaFree(B_overlap);
-    free(A_host_overlap);
-    free(B_host_overlap);
+    cudaFreeHost(A_host_overlap);
+    cudaFreeHost(B_host_overlap);
 
 }
