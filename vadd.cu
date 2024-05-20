@@ -19,20 +19,18 @@ __global__ void vec_add(const float* A, const float* B, float* C, unsigned long 
 int main(int argc, char** argv)
 {
 
-    if (argc < 3)
-    {
-        std::cout << "Usage:" << std::endl;
-        std::cout << std::endl;
-        std::cout << "    " << argv[0] << " N_data N_ops" << std::endl;
-        std::cout << std::endl;
-        std::cout << std::endl;
-        return 1;
-    }
+    std::cout << "#################################" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#    Vector Addition Program    #" << std::endl;
+    std::cout << "#            (GPU)              #" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#################################" << std::endl;
+
+    unsigned long long int N_data = 10000000;
+    unsigned long long int N_ops = 10000;
 
     auto start = high_resolution_clock::now();
-
-    unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
-    unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
 
     float* A_host = new float[N_data];
     float* B_host = new float[N_data];

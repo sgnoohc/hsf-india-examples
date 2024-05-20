@@ -17,21 +17,16 @@ void vec_add_host(float* A, float* B, float* C, unsigned long long int N_data, u
 int main(int argc, char** argv)
 {
 
-    unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
-    unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
+    std::cout << "#################################" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#    Vector Addition Program    #" << std::endl;
+    std::cout << "#            (CPU)              #" << std::endl;
+    std::cout << "#                               #" << std::endl;
+    std::cout << "#################################" << std::endl;
 
-    if (argc < 3)
-    {
-        std::cout << "Usage:" << std::endl;
-        std::cout << std::endl;
-        std::cout << "    " << argv[0] << " N_data N_ops" << std::endl;
-        std::cout << std::endl;
-        std::cout << std::endl;
-        return 1;
-    }
-
-    unsigned long long int N_data = strtoull(argv[1], nullptr, 10);
-    unsigned long long int N_ops = strtoull(argv[2], nullptr, 10);
+    unsigned long long int N_data = 10000000;
+    unsigned long long int N_ops = 10000;
 
     auto start = high_resolution_clock::now();
 
