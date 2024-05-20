@@ -46,11 +46,14 @@ int main(int argc, char** argv)
 
     auto end = high_resolution_clock::now();
 
-    std::cout << "Printing last 10 result" << std::endl;
+    std::cout << " --- Sanity Check ---" << std::endl;
+    std::cout << " Printing last 10 result" << std::endl;
     for (unsigned int i = N_data - 10; i < N_data; i++)
     {
         std::cout <<  " i: " << i <<  " C_host[i]: " << C_host[i] <<  std::endl;
     }
+    std::cout << std::endl;
+
 
     float time_init = duration_cast<microseconds>(mid - start).count() / 1000.;
     float time_exec = duration_cast<microseconds>(end - mid).count() / 1000.;
@@ -59,6 +62,14 @@ int main(int argc, char** argv)
     std::cout <<  " time_init: " << time_init <<  std::endl;
     std::cout <<  " time_exec: " << time_exec <<  std::endl;
     std::cout <<  " time_tota: " << time_tota <<  std::endl;
+    std::cout <<  " --- Timing information --- " << std::endl;
+    std::cout <<  " time inititalizing       : " << time_init <<  std::endl;
+    std::cout <<  " time allocation          : " << "0"       <<  std::endl;
+    std::cout <<  " time sending to GPU      : " << "0"       <<  std::endl;
+    std::cout <<  " time executing on GPU    : " << time_exec <<  std::endl;
+    std::cout <<  " time retrieving from GPU : " << "0"       <<  std::endl;
+    std::cout <<  " -------------------------: " <<               std::endl;
+    std::cout <<  " time total               : " << time_tota <<  std::endl;
 
     float P_frac = time_exec / (time_init + time_exec);
 

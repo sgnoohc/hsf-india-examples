@@ -60,24 +60,28 @@ int main(int argc, char** argv)
 
     auto mid3 = high_resolution_clock::now();
 
-    unsigned long long int N_thread_per_block = 256;
-    unsigned long long int N_block = (N_data - 0.5) / N_thread_per_block + 1;
+    unsigned long long int block_size = 256;
+    unsigned long long int grid_size = (N_data - 0.5) / block_size + 1;
 
-    std::cout <<  " N_block: " << N_block <<  std::endl;
-    std::cout <<  " N_thread_per_block: " << N_thread_per_block <<  std::endl;
+    std::cout <<  " --- GPU Kernel Launch Config --- " << std::endl;
+    std::cout <<  " grid_size: " << grid_size <<  std::endl;
+    std::cout <<  " block_size: " << block_size <<  std::endl;
+    std::cout << std::endl;
 
-    vec_add<<<N_block, N_thread_per_block>>>(A_device, B_device, C_device, N_data, N_ops);
+    vec_add<<<grid_size, block_size>>>(A_device, B_device, C_device, N_data, N_ops);
     cudaDeviceSynchronize();
 
     auto mid4 = high_resolution_clock::now();
 
     cudaMemcpy(C_host, C_device, N_data * sizeof(float), cudaMemcpyDeviceToHost);
 
-    std::cout << "Printing last 10 result" << std::endl;
+    std::cout << " --- Sanity Check ---" << std::endl;
+    std::cout << " Printing last 10 result" << std::endl;
     for (unsigned int i = N_data - 10; i < N_data; i++)
     {
         std::cout <<  " i: " << i <<  " C_host[i]: " << C_host[i] <<  std::endl;
     }
+    std::cout << std::endl;
 
     // Free allocated memory
     free(A_host);
@@ -96,14 +100,14 @@ int main(int argc, char** argv)
     float time_retr = duration_cast<microseconds>(end - mid4).count() / 1000.;
     float time_tota = duration_cast<microseconds>(end - start).count() / 1000.;
 
-    std::cout <<  " time_init: " << time_init <<  std::endl;
-    std::cout <<  " time_allo: " << time_allo <<  std::endl;
-    std::cout <<  " time_send: " << time_send <<  std::endl;
-    std::cout <<  " time_exec: " << time_exec <<  std::endl;
-    std::cout <<  " time_retr: " << time_retr <<  std::endl;
-    std::cout <<  " time_tota: " << time_tota <<  std::endl;
-
-    std::cout << "Result:," << time_init << "," << time_allo << "," << time_send << "," << time_exec << "," << time_retr << "," << time_tota << std::endl;
+    std::cout <<  " --- Timing information --- " << std::endl;
+    std::cout <<  " time inititalizing       : " << time_init <<  std::endl;
+    std::cout <<  " time allocation          : " << time_allo <<  std::endl;
+    std::cout <<  " time sending to GPU      : " << time_send <<  std::endl;
+    std::cout <<  " time executing on GPU    : " << time_exec <<  std::endl;
+    std::cout <<  " time retrieving from GPU : " << time_retr <<  std::endl;
+    std::cout <<  " -------------------------: " <<               std::endl;
+    std::cout <<  " time total               : " << time_tota <<  std::endl;
 
     return 0;
 }
