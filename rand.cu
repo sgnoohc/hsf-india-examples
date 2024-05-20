@@ -25,9 +25,11 @@ __global__ void throw_dart(curandState* state, myInt_t* n_inside)
 
 int main()
 {
-    //~*~*~*~*~*~*~*~*~*~*~
-    // Defining dimensions
-    //~*~*~*~*~*~*~*~*~*~*~
+    std::cout << "################################" << std::endl;
+    std::cout << "#                              #" << std::endl;
+    std::cout << "#    Computing Pi via Darts    #" << std::endl;
+    std::cout << "#                              #" << std::endl;
+    std::cout << "################################" << std::endl;
 
     // we will launch 2048 blocks
     myInt_t grid_size = pow(2, 16);
@@ -37,6 +39,13 @@ int main()
 
     // total threads
     myInt_t n_total_threads = grid_size * block_size;
+
+    // print the problem detail
+    std::cout << " --- Input data ---" << std::endl;
+    std::cout << " grid_size          = " << grid_size << std::endl;
+    std::cout << " block_size         = " << block_size << std::endl;
+    std::cout << " total darts thrown = " << n_total_threads << std::endl;
+    std::cout << std::endl;
 
     // create a pointer to the array of random state
     // each random state can be used to generate random number
@@ -73,6 +82,7 @@ int main()
     double pi_estimate = (double) *n_inside_host / n_total_threads * 4.;
 
     // print pi_estimate
+    std::cout << " --- Result ---" << std::endl;
     std::cout <<  " pi_estimate: " << pi_estimate <<  std::endl;
 
     return 0;
