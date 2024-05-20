@@ -21,7 +21,6 @@ int main(int argc, char** argv)
 
     std::cout << "#################################" << std::endl;
     std::cout << "#                               #" << std::endl;
-    std::cout << "#                               #" << std::endl;
     std::cout << "#    Vector Addition Program    #" << std::endl;
     std::cout << "#            (GPU)              #" << std::endl;
     std::cout << "#                               #" << std::endl;
