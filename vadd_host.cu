@@ -31,6 +31,11 @@ int main(int argc, char** argv)
     // and we will sum this up n_ops times
     unsigned long long int n_ops = 1000;
 
+    // print the problem detail
+    std::cout << " --- Input data ---" << std::endl;
+    std::cout << " n_data = " << n_data << std::endl;
+    std::cout << " n_ops  = " << n_ops << std::endl;
+
     // record the current time
     auto start = high_resolution_clock::now();
 
