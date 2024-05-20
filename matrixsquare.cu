@@ -66,6 +66,8 @@ int main(int argc, char** argv)
     float ms;
 
     // we store in single dimension where row is assumed first
+    float* A_host;
+    float* B_host;
     cudaMallocHost((void**) &A_host, m_tot * sizeof(float));
     cudaMallocHost((void**) &B_host, m_tot * sizeof(float));
 
@@ -122,6 +124,8 @@ int main(int argc, char** argv)
     printf(" --- Overlapping Run ---\n");
 
     // we store in single dimension where row is assumed first
+    float* A_host_overlap;
+    float* B_host_overlap;
     cudaMallocHost((void**) &A_host_overlap, m_tot * sizeof(float));
     cudaMallocHost((void**) &B_host_overlap, m_tot * sizeof(float));
 
