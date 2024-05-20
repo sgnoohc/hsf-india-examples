@@ -166,7 +166,7 @@ int main(int argc, char** argv)
     cudaEventSynchronize(stopEvent);
     cudaEventElapsedTime(&ms, startEvent, stopEvent);
     printf(" Time total (ms): %f\n", ms);
-    printf("\n", ms);
+    printf("\n");
 
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
     //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
