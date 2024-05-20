@@ -126,8 +126,8 @@ int main(int argc, char** argv)
     // we store in single dimension where row is assumed first
     float* A_host_overlap;
     float* B_host_overlap;
-    cudaMallocHost((void**) &A_host_overlap, m_tot * sizeof(float));
-    cudaMallocHost((void**) &B_host_overlap, m_tot * sizeof(float));
+    cudaMallocHost((void**) &A_host_overlap, n_repeat * m_tot * sizeof(float));
+    cudaMallocHost((void**) &B_host_overlap, n_repeat * m_tot * sizeof(float));
 
     // we set n_repeat times
     for (int i = 0; i < n_repeat; ++i)
