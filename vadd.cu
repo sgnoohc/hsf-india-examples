@@ -100,13 +100,13 @@ int main(int argc, char** argv)
     float time_tota = duration_cast<microseconds>(end - start).count() / 1000.;
 
     std::cout <<  " --- Timing information --- " << std::endl;
-    std::cout <<  " time inititalizing       : " << time_init <<  std::endl;
-    std::cout <<  " time allocation          : " << time_allo <<  std::endl;
-    std::cout <<  " time sending to GPU      : " << time_send <<  std::endl;
-    std::cout <<  " time executing on GPU    : " << time_exec <<  std::endl;
-    std::cout <<  " time retrieving from GPU : " << time_retr <<  std::endl;
-    std::cout <<  " -------------------------: " <<               std::endl;
-    std::cout <<  " time total               : " << time_tota <<  std::endl;
+    std::cout <<  " time inititalizing       : " << time_init << " ms" <<  std::endl;
+    std::cout <<  " time allocation          : " << time_allo << " ms" <<  std::endl;
+    std::cout <<  " time sending to GPU      : " << time_send << " ms" <<  std::endl;
+    std::cout <<  " time executing on GPU    : " << time_exec << " ms" <<  std::endl;
+    std::cout <<  " time retrieving from GPU : " << time_retr << " ms" <<  std::endl;
+    std::cout <<  " -------------------------: " <<                        std::endl;
+    std::cout <<  " time total               : " << time_tota << " ms" <<  std::endl;
 
     return 0;
 }
