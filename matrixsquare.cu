@@ -21,7 +21,7 @@ __global__ void mult(float* A,
     {
         float Aval_row = A[m_dim * row + ii + ioffset * m_dim * m_dim];
         float Aval_col = A[m_dim * ii + row + ioffset * m_dim * m_dim];
-        Bval += Aval * Aval;
+        Bval += Aval_row * Aval_col;
     }
     B[row * m_dim + col + ioffset * m_dim * m_dim] = Bval;
 }
