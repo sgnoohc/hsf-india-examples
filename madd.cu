@@ -28,7 +28,12 @@ __global__ void madd(float* A,
 
     int idx = m_dim * row + col + ioffset * m_dim * m_dim;
     float Aval = A[idx];
-    B[idx] = Aval + Aval;
+    float Bval = 0;
+    for (int i = 0; i < 2000; ++i)
+    {
+        Bval += Aval + Aval;
+    }
+    B[idx] = Bval;
 }
 
 int main(int argc, char** argv)
