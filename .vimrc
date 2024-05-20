@@ -14,4 +14,4 @@ set nocursorcolumn
 set nowrap
 set list
 set listchars=tab:>-
-colorscheme light-bg-delek
+colorscheme delek
