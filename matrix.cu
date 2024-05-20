@@ -61,7 +61,7 @@ int main(int argc, char** argv)
     myInt_t C_ntot = C_nrow * C_ncol;
 
     // we will perform each element as one thread
-    // 16 element x 16 element will be computed per thread block
+    // 4 element x 4 element will be computed per thread block
     myInt_t n_thread_dim = 16;
 
     // then the block dimensions are defined
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
     cudaMalloc((void**) &C_device, C_ntot * sizeof(double));
 
     // warm up run
-    mult<<<blockDim, gridDim>>>(
+    mult<<<gridDim, blockDim>>>(
         A_device, B_device, C_device,
         A_nrow, A_ncol,
         B_nrow, B_ncol,
@@ -131,34 +131,34 @@ int main(int argc, char** argv)
     for (int i = 0 ; i < n_repeat; ++i)
     {
         // copy the host values to device memory
-        cudaEventRecord(startTask, 0);
+        // cudaEventRecord(startTask, 0);
         cudaMemcpy(A_device, A_host, A_ntot * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(B_device, B_host, B_ntot * sizeof(double), cudaMemcpyHostToDevice);
-        cudaEventRecord(stopTask, 0);
-        cudaEventSynchronize(stopTask);
-        cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf(" Time tx    (ms): %f\n", ms);
+        // cudaEventRecord(stopTask, 0);
+        // cudaEventSynchronize(stopTask);
+        // cudaEventElapsedTime(&ms, startTask, stopTask);
+        // printf(" Time tx    (ms): %f\n", ms);
 
         // run the matrix multiplication calculation
-        cudaEventRecord(startTask, 0);
-        mult<<<blockDim, gridDim>>>(
+        // cudaEventRecord(startTask, 0);
+        mult<<<gridDim, blockDim>>>(
             A_device, B_device, C_device,
             A_nrow, A_ncol,
             B_nrow, B_ncol,
             C_nrow, C_ncol, 0 /*no offset*/);
         cudaDeviceSynchronize();
-        cudaEventRecord(stopTask, 0);
-        cudaEventSynchronize(stopTask);
-        cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf(" Time exec  (ms): %f\n", ms);
+        // cudaEventRecord(stopTask, 0);
+        // cudaEventSynchronize(stopTask);
+        // cudaEventElapsedTime(&ms, startTask, stopTask);
+        // printf(" Time exec  (ms): %f\n", ms);
 
         // retrieve results
-        cudaEventRecord(startTask, 0);
+        // cudaEventRecord(startTask, 0);
         cudaMemcpy(C_host, C_device, C_ntot * sizeof(double), cudaMemcpyDeviceToHost);
-        cudaEventRecord(stopTask, 0);
-        cudaEventSynchronize(stopTask);
-        cudaEventElapsedTime(&ms, startTask, stopTask);
-        printf(" Time rx    (ms): %f\n", ms);
+        // cudaEventRecord(stopTask, 0);
+        // cudaEventSynchronize(stopTask);
+        // cudaEventElapsedTime(&ms, startTask, stopTask);
+        // printf(" Time rx    (ms): %f\n", ms);
     }
 
     // end the overall timer
@@ -214,6 +214,8 @@ int main(int argc, char** argv)
 
     // start the overall timer
     cudaEventRecord(startEvent, 0);
+
+    auto start = high_resolution_clock::now();
 
     for (int i = 0; i < n_repeat; ++i)
     {
