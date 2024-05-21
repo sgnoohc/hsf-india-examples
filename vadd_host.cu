@@ -3,9 +3,9 @@
 #include <chrono>
 using namespace std::chrono;
 
-void vec_add_host(float* A, float* B, float* C, unsigned long long int n_data, unsigned long long int n_ops)
+void vec_add_host(float* A, float* B, float* C, int n_data, int n_ops)
 {
-    for (unsigned long long int i_data = 0; i_data < n_data; ++i_data)
+    for (int i_data = 0; i_data < n_data; ++i_data)
     {
         for (unsigned i = 0; i < n_ops; ++i)
         {
@@ -26,10 +26,10 @@ int main(int argc, char** argv)
     std::cout << "#################################" << std::endl;
 
     // we will have a vector of length n_data
-    unsigned long long int n_data = 10000000;
+    int n_data = 10000000;
 
     // and we will sum this up n_ops times
-    unsigned long long int n_ops = 1000;
+    int n_ops = 1000;
 
     // print the problem detail
     std::cout << " --- Input data ---" << std::endl;
