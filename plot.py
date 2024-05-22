@@ -1,4 +1,4 @@
-
+#!/bin/env python
 
 import LSTMath as m
 import random
@@ -8,33 +8,52 @@ import plotly.express as px
 import math
 import numpy as np
 
-f = open("hits.txt")
-
-lines = [ x.strip() for x in f.readlines() ]
-
-lower_hit_x = []
-lower_hit_y = []
-lower_hit_z = []
-upper_hit_x = []
-upper_hit_y = []
-upper_hit_z = []
-
+# Get list of hits
+hit_x = []
+hit_y = []
+hit_z = []
+f = open("hits.csv")
+lines = [ x.strip() for x in f.readlines()[1:] ]
 for line in lines:
     ls = line.split(",")
-    if int(ls[1]) == 0:
-        lower_hit_x.append(float(ls[4]))
-        lower_hit_y.append(float(ls[5]))
-        lower_hit_z.append(float(ls[6]))
-    else:
-        upper_hit_x.append(float(ls[4]))
-        upper_hit_y.append(float(ls[5]))
-        upper_hit_z.append(float(ls[6]))
+    hit_x.append(float(ls[3]))
+    hit_y.append(float(ls[4]))
+    hit_z.append(float(ls[5]))
 
+# Create Plotly scatter object
+hits_to_draw = go.Scatter3d(
+    x = hit_z,
+    y = hit_x,
+    z = hit_y,
+    mode='markers',
+    marker=dict(
+        symbol='circle',
+        size=1.5,
+        color='gray',
+        colorscale='Viridis',
+        opacity=0.5,
+        ),
+    hoverinfo='none',
+    name='lower hits',
+    )
 
-lh_to_draw = go.Scatter3d(
-    x = lower_hit_z,
-    y = lower_hit_x,
-    z = lower_hit_y,
+# Get list of mds
+md_x = []
+md_y = []
+md_z = []
+f = open("mds.csv")
+lines = [ x.strip() for x in f.readlines()[1:] ]
+for line in lines:
+    ls = line.split(",")
+    md_x.append(float(ls[0]))
+    md_y.append(float(ls[1]))
+    md_z.append(float(ls[2]))
+
+# Create Plotly scatter object
+mds_to_draw = go.Scatter3d(
+    x = md_z,
+    y = md_x,
+    z = md_y,
     mode='markers',
     marker=dict(
         symbol='circle',
@@ -44,65 +63,58 @@ lh_to_draw = go.Scatter3d(
         opacity=0.5,
         ),
     hoverinfo='none',
-    name='lower hits',
+    name='mds',
     )
 
-rh_to_draw = go.Scatter3d(
-    x = upper_hit_z,
-    y = upper_hit_x,
-    z = upper_hit_y,
-    mode='markers',
-    marker=dict(
-        symbol='circle',
-        size=1.5,
-        color='orange',
-        colorscale='Viridis',
-        opacity=0.5,
-        ),
-    hoverinfo='none',
-    name='upper hits',
-    )
-
-Xsim = []
-Ysim = []
-Zsim = []
-Rsim = []
-
-g = open("tracks.txt")
-for iline, line in enumerate(g.readlines()):
+# Get the list of points on each simulated tracks
+# The list of points computed from pt,eta,phi,vx,vy,vz,q
+# will be used to draw track lines
+sim_track_x = []
+sim_track_y = []
+sim_track_z = []
+g = open("tracks.csv")
+lines = [ x.strip() for x in g.readlines()[1:] ]
+for iline, line in enumerate(lines):
     ls = line.strip().split(",")
-    if float(ls[1]) < 0.8:
+    # if the track has pt < 0.8 skip
+    if float(ls[1]) < 1.5:
         continue
+    # printing progress
     if iline % 100 == 0:
         print(iline)
+    # points contain list of points to draw curved line
     points = m.get_helix_points(m.construct_helix_from_kinematics(float(ls[1]), float(ls[2]), float(ls[3]), float(ls[4]), float(ls[5]), float(ls[6]), float(ls[7])))
     for x, y, z in zip(points[0], points[1], points[2]):
         if abs(z) < 120:
-            Xsim.append(x)
-            Ysim.append(y)
-            Zsim.append(z)
-            Rsim.append(math.sqrt(x**2 + y**2))
-    Xsim.append(None)
-    Ysim.append(None)
-    Zsim.append(None)
-    Rsim.append(None)
+            sim_track_x.append(x)
+            sim_track_y.append(y)
+            sim_track_z.append(z)
+    # By inserting "None" points in between plotly
+    # divides the line between each different tracks
+    sim_track_x.append(None)
+    sim_track_y.append(None)
+    sim_track_z.append(None)
 
+# Create plotly object
 sims_to_draw = go.Scatter3d(
-        x = Zsim,
-        y = Ysim,
-        z = Xsim,
+        x = sim_track_z,
+        y = sim_track_x,
+        z = sim_track_y,
         mode='lines',
         line=dict(
             color='red',
             width=2,
         ),
-        opacity=0.1,
+        opacity=0.5,
         hoverinfo='none',
         name='Sim Track',
 )
 
-fig = go.Figure([lh_to_draw, rh_to_draw, sims_to_draw])
+# draw the figure
+# fig = go.Figure([hits_to_draw, sims_to_draw])
+fig = go.Figure([hits_to_draw, sims_to_draw, mds_to_draw])
 
+# Set the window settings
 fig.update_layout(
     template="plotly_dark",
     paper_bgcolor="rgb(0,0,0,1)",
@@ -116,4 +128,5 @@ fig.update_layout(
     height=800,
     margin=dict(r=20, l=10, b=10, t=10));
 
-fig.write_html("htmls/hits.html")
+# Write to file
+fig.write_html("event.html")
