@@ -46,13 +46,13 @@ int main(int argc, char** argv)
     myInt_t n_repeat = 4;
 
     // A matrix dimension and total element definition
-    myInt_t A_nrow = 8;
+    myInt_t A_nrow = 64;
     myInt_t A_ncol = 64;
     myInt_t A_ntot = A_nrow * A_ncol;
 
     // B matrix dimension and total element definition
     myInt_t B_nrow = 64;
-    myInt_t B_ncol = 8;
+    myInt_t B_ncol = 64;
     myInt_t B_ntot = B_nrow * B_ncol;
 
     // C matrix dimension and total element definition
@@ -246,11 +246,11 @@ int main(int argc, char** argv)
     cudaFree(A_overlap);
     cudaFree(B_overlap);
     cudaFree(C_overlap);
-    free(A_host);
-    free(B_host);
-    free(C_host);
-    free(A_host_overlap);
-    free(B_host_overlap);
-    free(C_host_overlap);
+    cudaFreeHost(A_host);
+    cudaFreeHost(B_host);
+    cudaFreeHost(C_host);
+    cudaFreeHost(A_host_overlap);
+    cudaFreeHost(B_host_overlap);
+    cudaFreeHost(C_host_overlap);
 
 }
